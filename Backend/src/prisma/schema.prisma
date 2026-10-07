@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PLAYER
+  DEVELOPER
+  ADMIN
+  OWNER
+}
+
+// For GameStatus
+enum GameStatus {
+  DRAFT
+  PENDING
+  REJECTED
+  PUBLISHED
+  HIDDEN
+}
+
+model User {
+  id            String                        @id @default(uuid())
+  email         String                        @unique
+  username      String                        @unique
+  password      String                                    
+  role          Role                          @default(PLAYER)
+  isActive      Boolean                       @default(true)
+
+  // Phase 2
+  games         Game[]                        @relation("DeveloperGames")
+  sessions      Session[]  // To keep track at all the sessions of the user
+
+
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt      
+}
+
+
+model Session {
+  id                String                      @id @default(uuid())
+  refreshToken      String                      @unique
+  userId            String
+  user              User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                   @default(now())
+  expiresAt         DateTime   
+  
+}
+
+
+
+// For Game Engine
+model Game {
+  id                   String            @id @default(uuid())
+  title                String 
+  genre                String 
+  description          String            // For large texts
+  tags                 String[]
+
+  status               GameStatus        @default(DRAFT)
+  developerId          String
+  developer            User              @relation("DeveloperGames", fields: [developerId], references: [id])
+
+  // Normalization
+  pricing              GamePricing[]
+  media                GameMedia?
+  versions             GameVersion[]
+  requirements         GameRequirements?
+  telemetry            GameTelemetry?
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt 
+
+
+
+}
+
+model GamePricing {
+  id                   String             @id @default(uuid())
+  gameId               String
+  game                 Game               @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  editionName          String             @default("Standard Edition")
+  features             String[]           @default([])
+  isFree               Boolean            @default(false)
+  price                Decimal
+  currency             String             @default("INR")
+  discounts            GameDiscount[]
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt 
+}
+
+model GameDiscount {
+  id                   String             @id @default(uuid())
+
+  pricingId            String
+  pricing              GamePricing        @relation(fields: [pricingId], references: [id], onDelete: Cascade)
+  percentage  Decimal
+
+  startsAt             DateTime
+  endsAt               DateTime
+  createdAt            DateTime  @default(now())
+}
+
+model GameMedia {
+  id                   String             @id @default(uuid())
+  gameId               String             @unique
+  game                 Game               @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  coverImageUrl        String?
+  bannerImageUrl       String?
+  screenshots          String[]
+  trailerUrl           String?
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt 
+}
+
+model GameVersion {
+  id                   String             @id @default(uuid())
+  gameId               String
+  game                 Game               @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  version              String             
+  downloadUrl          String?
+  changelog            String?
+  createdAt            DateTime  @default(now())
+  @@unique([gameId, version])
+}
+
+model GameRequirements {
+  id                   String             @id @default(uuid())
+  gameId               String             @unique
+  game                 Game               @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  
+  // Bare Metal Minimum
+  minOs                String
+  minCpu               String
+  minGpu               String
+  minMem               String
+  minStorage           String
+  minNetwork           String
+
+  // Optimal Yield (Enjoyable)
+  optOs                String
+  optCpu               String
+  optGpu               String
+  optMem               String
+  optStorage           String
+  optNetwork           String
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt 
+}
+
+model GameTelemetry {
+  id                 String             @id @default(uuid())
+  gameId             String             @unique
+  game               Game               @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  
+  mainStoryHours     Float?
+  mainExtrasHours    Float?
+  completionistHours Float?
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt 
+}
