@@ -1,10 +1,10 @@
+---
 name: Engineering Incident
-description: Log a critical system failure, debugging session, or architectural change.
+about: Log a critical system failure, debugging session, or architectural change.
 title: "[INCIDENT]: "
 labels: ["engineering-incident"]
 assignees:
   - martand-codes
-
 ---
 
 ## INPUT_STATE
