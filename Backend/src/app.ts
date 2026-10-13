@@ -6,9 +6,13 @@ import cors from "cors";
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:5173", 
+    origin: ["http://localhost:5173", "http://localhost:5174"], 
     credentials: true 
 }));
+
+// Stripe Webhook needs the raw payload for signature verification (MUST be before express.json())
+import { handleStripeWebhook } from "./Controllers/payment.controller.js";
+app.post("/api/payments/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
 
 app.use(express.json());
 app.use("/api/auth", authRoutes);
@@ -20,6 +24,9 @@ app.use("/api/store", storeRoutes);
 
 import adminRoutes from "./Routes/admin.routes.js";
 app.use("/api/admin", adminRoutes);
+
+import paymentRoutes from "./Routes/payment.routes.js";
+app.use("/api/payments", paymentRoutes);
 
 app.get("/", (_req: Request, res: Response) => {
     res.status(200).send("Health Route working!");

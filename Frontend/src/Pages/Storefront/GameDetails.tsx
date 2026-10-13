@@ -14,7 +14,7 @@ interface Game {
   genre: string;
   description: string;
   tags?: string[];
-  pricing: { editionName: string; price: number; isFree: boolean; features: string[] }[];
+  pricing: { id: string; editionName: string; price: number; isFree: boolean; features: string[] }[];
   media: { coverImageUrl: string; bannerImageUrl: string; screenshots: string[]; trailerUrl?: string };
   developer: { username: string };
   versions: { version: string; releaseNotes: string; isLatest: boolean; releaseDate: string }[];
@@ -143,7 +143,7 @@ export default function GameDetails() {
       </div>
 
       {/* Buy Action Box */}
-      <GameEditions editions={game.pricing || []} title={game.title} gameId={game.id} coverImage={game.coverImage} />
+      <GameEditions editions={game.pricing || []} title={game.title} gameId={game.id} coverImage={game.media?.coverImageUrl} />
 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

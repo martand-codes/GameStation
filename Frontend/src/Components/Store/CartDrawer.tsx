@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Trash2, CreditCard, CheckCircle } from 'lucide-react';
 import { useCart } from '../../Context/CartContext';
+
+import { api } from '../../Api/Axios';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -10,19 +12,34 @@ interface CartDrawerProps {
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { items, removeFromCart, total, clearCart } = useCart();
   const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'processing' | 'success'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleCheckout = () => {
-    setCheckoutStatus('processing');
-    setTimeout(() => {
-      setCheckoutStatus('success');
-      setTimeout(() => {
-        clearCart();
+  const handleCheckout = async () => {
+    try {
+      setCheckoutStatus('processing');
+      setErrorMessage(null);
+
+      const response = await api.post('/payments/cart-checkout', {
+        items: items.map(item => ({
+          gameId: item.gameId,
+          editionName: item.editionName,
+        })),
+      });
+
+      if (response.data.success && response.data.checkoutUrl) {
+        // Redirect to secure Stripe checkout
+        window.location.href = response.data.checkoutUrl;
+      } else {
         setCheckoutStatus('idle');
-        onClose();
-      }, 2000);
-    }, 1500);
+        setErrorMessage(response.data.message || 'Payment initialization failed');
+      }
+    } catch (err: any) {
+      console.error('Cart checkout error:', err);
+      setCheckoutStatus('idle');
+      setErrorMessage(err.response?.data?.message || 'Error connecting to payment gateway');
+    }
   };
 
   return (
@@ -122,12 +139,19 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </div>
             </div>
             
+            {errorMessage && (
+              <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded text-xs text-red-400">
+                {errorMessage}
+              </div>
+            )}
+
             <button 
               onClick={handleCheckout}
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-sm flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+              disabled={checkoutStatus === 'processing'}
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 text-white font-bold rounded-sm flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]"
             >
               <CreditCard className="h-5 w-5" />
-              Checkout (Mock)
+              {checkoutStatus === 'processing' ? 'Connecting to Stripe...' : `Pay ₹${total.toFixed(2)} with Stripe`}
             </button>
           </div>
         )}

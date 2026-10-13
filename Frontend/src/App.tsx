@@ -12,6 +12,8 @@ import { useAuth } from './Context/AuthContext';
 import StorefrontLayout from './Layouts/StorefrontLayout';
 import Home from './Pages/Storefront/Home';
 import GameDetails from './Pages/Storefront/GameDetails';
+import PaymentSuccess from './Pages/Storefront/PaymentSuccess';
+import PaymentCancelled from './Pages/Storefront/PaymentCancelled';
 
 const App = () => {
   const { isAuthenticated } = useAuth();
@@ -31,6 +33,10 @@ const App = () => {
       <Route path="/store" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
         <Route index element={<Home />} />
         <Route path="games/:id" element={<GameDetails />} />
+      </Route>
+      <Route path="/payment" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
+        <Route path="success" element={<PaymentSuccess />} />
+        <Route path="cancelled" element={<PaymentCancelled />} />
       </Route>
     </Routes>
   )

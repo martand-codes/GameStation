@@ -89,14 +89,23 @@ export const submitGame = async (gameId: string, developerId: string) => {
 export const updateGamePricing = async (gameId: string, developerId: string, data: PricingInput) => {
   await getGameById(gameId, developerId);
 
-  return await prisma.gamePricing.upsert({
-    where: { gameId },
-    update: {
-      isFree: data.isFree,
-      price: data.price || 0,
-      currency: data.currency
-    },
-    create: {
+  const existingPricing = await prisma.gamePricing.findFirst({
+    where: { gameId }
+  });
+
+  if (existingPricing) {
+    return await prisma.gamePricing.update({
+      where: { id: existingPricing.id },
+      data: {
+        isFree: data.isFree,
+        price: data.price || 0,
+        currency: data.currency
+      }
+    });
+  }
+
+  return await prisma.gamePricing.create({
+    data: {
       gameId,
       isFree: data.isFree,
       price: data.price || 0,
@@ -107,11 +116,12 @@ export const updateGamePricing = async (gameId: string, developerId: string, dat
 
 export const addGameDiscount = async (gameId: string, developerId: string, data: DiscountInput) => {
   const game = await getGameById(gameId, developerId);
-  if (!game.pricing) throw new BadRequestError("Pricing must be set before adding discounts");
+  const firstPricing = Array.isArray(game.pricing) ? game.pricing[0] : (game.pricing as any);
+  if (!firstPricing) throw new BadRequestError("Pricing must be set before adding discounts");
 
   return await prisma.gameDiscount.create({
     data: {
-      pricingId: game.pricing.id,
+      pricingId: firstPricing.id,
       percentage: data.percentage,
       startsAt: data.startsAt,
       endsAt: data.endsAt

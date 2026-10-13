@@ -129,13 +129,15 @@ async function main() {
             trailerUrl: (gameData as any).trailerUrl || null,
           },
         },
-        telemetry: (gameData as any).telemetry ? {
-          create: {
-            mainStoryHours: (gameData as any).telemetry.mainStoryHours,
-            mainExtrasHours: (gameData as any).telemetry.mainExtrasHours,
-            completionistHours: (gameData as any).telemetry.completionistHours,
+        ...((gameData as any).telemetry ? {
+          telemetry: {
+            create: {
+              mainStoryHours: (gameData as any).telemetry.mainStoryHours,
+              mainExtrasHours: (gameData as any).telemetry.mainExtrasHours,
+              completionistHours: (gameData as any).telemetry.completionistHours,
+            }
           }
-        } : undefined,
+        } : {}),
         versions: {
           create: {
             version: '1.0.0',

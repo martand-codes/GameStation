@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // Fetch all PUBLISHED games for the storefront
-export const getStoreGames = async (req: Request, res: Response): Promise<void> => {
+export const getStoreGames = async (_req: Request, res: Response): Promise<void> => {
   try {
     const games = await prisma.game.findMany({
       where: {
@@ -33,6 +33,10 @@ export const getStoreGames = async (req: Request, res: Response): Promise<void> 
 export const getStoreGameById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    if (!id || typeof id !== "string") {
+      res.status(400).json({ success: false, message: "Invalid game ID" });
+      return;
+    }
 
     const game = await prisma.game.findFirst({
       where: {
