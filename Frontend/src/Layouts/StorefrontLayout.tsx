@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Terminal, Gamepad2, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart } from 'lucide-react';
+import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart } from 'lucide-react';
 import { useAuth } from '../Context/AuthContext';
 import { useCart } from '../Context/CartContext';
 import { useWishlist } from '../Context/WishlistContext';
@@ -28,9 +28,9 @@ export default function StorefrontLayout() {
     const path = location.pathname;
     
     // Base breadcrumb
-    const base = [
-      { name: 'gamestation', path: '/store' },
-      { name: 'src', path: '/store' }
+    const base: { name: string; path: string; isCurrent?: boolean }[] = [
+      { name: 'gamestation', path: '/store', isCurrent: false },
+      { name: 'src', path: '/store', isCurrent: false }
     ];
 
     if (path === '/store') {

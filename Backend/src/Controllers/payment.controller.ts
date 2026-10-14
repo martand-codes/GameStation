@@ -395,7 +395,7 @@ export const getSessionStatus = async (req: AuthRequest, res: Response): Promise
               create: {
                 userId: metaUserId,
                 gameId: gId,
-                pricingId: session.metadata?.pricingId || undefined,
+                pricingId: session.metadata?.pricingId || null,
               },
               update: {
                 ...(session.metadata?.pricingId ? { pricingId: session.metadata.pricingId } : {}),
@@ -491,7 +491,7 @@ export const handleStripeWebhook = async (req: any, res: Response): Promise<void
               create: {
                 userId: metaUserId,
                 gameId: gId,
-                pricingId: session.metadata?.pricingId || undefined,
+                pricingId: session.metadata?.pricingId || null,
               },
               update: {
                 ...(session.metadata?.pricingId ? { pricingId: session.metadata.pricingId } : {}),
@@ -521,23 +521,55 @@ export const getUserLibrary = async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const libraryItems = await prisma.userLibrary.findMany({
-      where: { userId },
-      include: {
-        game: {
-          include: {
-            media: true,
-            pricing: true,
-            versions: {
-              orderBy: { createdAt: "desc" },
-              take: 1,
+    const [libraryItems, payments] = await Promise.all([
+      prisma.userLibrary.findMany({
+        where: { userId },
+        include: {
+          pricing: true,
+          game: {
+            include: {
+              media: true,
+              pricing: true,
+              requirements: true,
+              telemetry: true,
+              developer: {
+                select: {
+                  id: true,
+                  username: true,
+                },
+              },
+              versions: {
+                orderBy: { createdAt: "desc" },
+              },
             },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      prisma.payment.findMany({
+        where: { userId, status: "SUCCESS" },
+        select: {
+          id: true,
+          gameId: true,
+          pricingId: true,
+          amount: true,
+          currency: true,
+          providerPaymentId: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+    ]);
+
+    const paymentByGame = new Map<string, any>();
+    payments.forEach((p) => {
+      if (!paymentByGame.has(p.gameId)) {
+        paymentByGame.set(p.gameId, p);
+      }
     });
 
     res.status(200).json({
@@ -545,6 +577,8 @@ export const getUserLibrary = async (req: AuthRequest, res: Response): Promise<v
       data: libraryItems.map((item: any) => ({
         libraryId: item.id,
         acquiredAt: item.createdAt,
+        ownedPricing: item.pricing,
+        latestPayment: paymentByGame.get(item.gameId) || null,
         game: item.game,
       })),
     });

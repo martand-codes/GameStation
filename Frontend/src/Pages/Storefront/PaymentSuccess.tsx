@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../Api/Axios';
-import { CheckCircle2, Gamepad2, ArrowRight, ShieldCheck, Terminal, Download, Sparkles } from 'lucide-react';
+import { CheckCircle2, Gamepad2, ArrowRight, ShieldCheck, Terminal, Sparkles } from 'lucide-react';
 import { useCart } from '../../Context/CartContext';
 
 export default function PaymentSuccess() {
@@ -157,10 +157,10 @@ export default function PaymentSuccess() {
                   </div>
 
                   <button
-                    onClick={() => navigate(`/store/games/${g.id}`)}
+                    onClick={() => navigate('/store/library')}
                     className="mt-3 px-3 py-1.5 bg-[#21262D] hover:bg-emerald-600 hover:text-white text-emerald-400 border border-emerald-500/30 rounded-sm text-xs font-bold transition-all flex items-center justify-center gap-2"
                   >
-                    <Download className="w-3.5 h-3.5" /> Launch / Play
+                    <Gamepad2 className="w-3.5 h-3.5" /> View in Library
                   </button>
                 </div>
               </div>
@@ -172,8 +172,14 @@ export default function PaymentSuccess() {
       {/* Navigation Actions */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
         <button
+          onClick={() => navigate('/store/library')}
+          className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-sm text-sm tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center justify-center gap-2"
+        >
+          <Gamepad2 className="w-4 h-4" /> Go to My Library
+        </button>
+        <button
           onClick={() => navigate('/store')}
-          className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-sm text-sm tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
+          className="w-full sm:w-auto px-8 py-3 bg-[#161B22] hover:bg-[#21262D] text-white border border-[#30363D] hover:border-emerald-500/50 font-bold rounded-sm text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2"
         >
           Explore More Games <ArrowRight className="w-4 h-4" />
         </button>

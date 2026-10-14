@@ -1,7 +1,5 @@
-import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Auth from './Pages/Auth';
-import Dashboard from './Pages/Dashboard';
 import DeveloperPortal from './Pages/DeveloperPortal';
 import GameConfig from './Pages/GameConfig';
 import DeveloperLayout from './Layouts/DeveloperLayout';
@@ -14,6 +12,7 @@ import Home from './Pages/Storefront/Home';
 import GameDetails from './Pages/Storefront/GameDetails';
 import PaymentSuccess from './Pages/Storefront/PaymentSuccess';
 import PaymentCancelled from './Pages/Storefront/PaymentCancelled';
+import Library from './Pages/Storefront/Library';
 
 const App = () => {
   const { isAuthenticated } = useAuth();
@@ -32,6 +31,7 @@ const App = () => {
       </Route>
       <Route path="/store" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
         <Route index element={<Home />} />
+        <Route path="library" element={<Library />} />
         <Route path="games/:id" element={<GameDetails />} />
       </Route>
       <Route path="/payment" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
