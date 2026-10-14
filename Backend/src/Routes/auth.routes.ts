@@ -15,7 +15,11 @@ import {
     testPlayerHandler, 
     testAdminHandler, 
     testDevHandler,
-    makeMeAdminHandler 
+    makeMeAdminHandler,
+    getProfileHandler,
+    updateProfileHandler,
+    changePasswordHandler,
+    revokeOtherSessionsHandler
 } 
 from "../Controllers/auth.controller.js";
 import { requireToken } from "../Middlewares/bouncer.middleware.js";
@@ -28,6 +32,13 @@ router.post("/register", validate(registerValidator), registerHandler);
 router.post("/login", validate(loginValidator), loginHandler);
 router.post("/refresh", refreshHandler);
 router.post("/logout", logoutHandler);
+
+// User Profile & Account Data
+router.get("/profile", requireToken as any, getProfileHandler);
+router.patch("/profile", requireToken as any, updateProfileHandler);
+router.post("/change-password", requireToken as any, changePasswordHandler);
+router.post("/revoke-sessions", requireToken as any, revokeOtherSessionsHandler);
+
 router.get("/test-player", requireToken, testPlayerHandler);
 router.get("/test-admin", requireToken, requireRole([ROLES.ADMIN]), testAdminHandler);
 router.get("/test-dev", requireToken, requireRole([ROLES.ADMIN, ROLES.DEVELOPER]), testDevHandler);

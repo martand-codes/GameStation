@@ -13,6 +13,7 @@ import GameDetails from './Pages/Storefront/GameDetails';
 import PaymentSuccess from './Pages/Storefront/PaymentSuccess';
 import PaymentCancelled from './Pages/Storefront/PaymentCancelled';
 import Library from './Pages/Storefront/Library';
+import Profile from './Pages/Storefront/Profile';
 
 const App = () => {
   const { isAuthenticated } = useAuth();
@@ -32,6 +33,7 @@ const App = () => {
       <Route path="/store" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
         <Route index element={<Home />} />
         <Route path="library" element={<Library />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="games/:id" element={<GameDetails />} />
       </Route>
       <Route path="/payment" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>

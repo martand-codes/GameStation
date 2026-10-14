@@ -39,6 +39,8 @@ export default function StorefrontLayout() {
       return [...base, { name: 'views', path: '/store/browse' }, { name: 'browse.ts', path: '/store/browse', isCurrent: true }];
     } else if (path.includes('/store/library')) {
       return [...base, { name: 'db', path: '/store/library' }, { name: 'library.db', path: '/store/library', isCurrent: true }];
+    } else if (path.includes('/store/profile')) {
+      return [...base, { name: 'config', path: '/store/profile' }, { name: '.profile', path: '/store/profile', isCurrent: true }];
     } else if (path.includes('/store/friends')) {
       return [...base, { name: 'config', path: '/store/friends' }, { name: 'network.cfg', path: '/store/friends', isCurrent: true }];
     } else if (path.includes('/store/games/')) {

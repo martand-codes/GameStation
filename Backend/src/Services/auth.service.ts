@@ -65,8 +65,28 @@ export const verifyUser = async(input: LoginInput) => {
     return safeUser;
 };
 
-export const createSession = async (userId: string, role: string) => {
-    
+export const createSession = async (userId: string, role: string, userAgent?: string) => {
+    // Detect device type: MOBILE vs DESKTOP
+    const isMobile = userAgent && /Mobile|Android|iPhone|iPad|iPod/i.test(userAgent);
+    const deviceType = isMobile ? "MOBILE" : "DESKTOP";
+    const deviceName = isMobile 
+        ? (/iPhone/i.test(userAgent) ? "Apple iPhone" : "Mobile Device")
+        : (/Windows/i.test(userAgent || "") ? "Windows PC" : /Mac/i.test(userAgent || "") ? "macOS Desktop" : "Desktop Computer");
+
+    // Enforce 1 Desktop + 1 Mobile session limit:
+    // If logging into Desktop, revoke any existing Desktop session for this user.
+    // If logging into Mobile, revoke any existing Mobile session for this user.
+    try {
+        await (prisma.session as any).deleteMany({
+            where: {
+                userId,
+                deviceType,
+            }
+        });
+    } catch (err) {
+        console.warn("Session clean up warning:", err);
+    }
+
     const accessToken = jwt.sign(
         {userId, role},
         process.env.JWT_ACCESS_KEY as string,
@@ -89,10 +109,12 @@ export const createSession = async (userId: string, role: string) => {
     .digest("hex");
     
     // Saving the session in the session Table
-    await prisma.session.create({
+    await (prisma.session as any).create({
         data: {
             userId,
             refreshToken: hashedRefreshToken,
+            deviceType,
+            deviceName,
             expiresAt
         }
     });
@@ -100,7 +122,7 @@ export const createSession = async (userId: string, role: string) => {
     return {accessToken, refreshToken};
 };
 
-export const refreshSession = async (incomingRefreshToken: string) => {
+export const refreshSession = async (incomingRefreshToken: string, userAgent?: string) => {
      jwt.verify(
         incomingRefreshToken, 
         process.env.JWT_REFRESH_KEY as string
@@ -131,7 +153,7 @@ export const refreshSession = async (incomingRefreshToken: string) => {
         throw new Error("User no longer exists");
     }
     await prisma.session.delete({ where: { id: session.id } });
-    return await createSession(session.userId, user.role);
+    return await createSession(session.userId, user.role, userAgent);
 };
 
 export const logoutSession = async (incomingRefreshToken: string) => {
