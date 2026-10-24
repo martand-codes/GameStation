@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart } from 'lucide-react';
+import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins } from 'lucide-react';
 import { useAuth } from '../Context/AuthContext';
 import { useCart } from '../Context/CartContext';
 import { useWishlist } from '../Context/WishlistContext';
+import { useWallet } from '../Context/WalletContext';
 import CartDrawer from '../Components/Store/CartDrawer';
 import WishlistDrawer from '../Components/Store/WishlistDrawer';
 
@@ -17,6 +18,7 @@ export default function StorefrontLayout() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const { items } = useCart();
   const { items: wishlistItems } = useWishlist();
+  const { balance } = useWallet();
 
   const handleLogout = () => {
     logout();
@@ -41,6 +43,8 @@ export default function StorefrontLayout() {
       return [...base, { name: 'db', path: '/store/library' }, { name: 'library.db', path: '/store/library', isCurrent: true }];
     } else if (path.includes('/store/profile')) {
       return [...base, { name: 'config', path: '/store/profile' }, { name: '.profile', path: '/store/profile', isCurrent: true }];
+    } else if (path.includes('/store/wallet')) {
+      return [...base, { name: 'config', path: '/store/wallet' }, { name: 'wallet.cfg', path: '/store/wallet', isCurrent: true }];
     } else if (path.includes('/store/friends')) {
       return [...base, { name: 'config', path: '/store/friends' }, { name: 'network.cfg', path: '/store/friends', isCurrent: true }];
     } else if (path.includes('/store/games/')) {
@@ -97,6 +101,16 @@ export default function StorefrontLayout() {
                 <span>[SWITCH_TO_DEV]</span>
               </button>
             )}
+
+            {/* PTS Wallet Balance Button */}
+            <Link
+              to="/store/wallet"
+              className="flex items-center gap-1.5 px-3 py-1 rounded border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-400 text-emerald-400 font-bold text-xs transition-all shadow-[0_0_12px_rgba(16,185,129,0.15)] group"
+              title="GameStation PTS Wallet"
+            >
+              <Coins className="h-3.5 w-3.5 text-emerald-400 group-hover:rotate-180 transition-transform duration-500" />
+              <span>₹{balance.toFixed(0)} PTS</span>
+            </Link>
 
             <button 
               onClick={() => setIsWishlistOpen(true)}
@@ -181,6 +195,10 @@ export default function StorefrontLayout() {
                 <Link to="/store/library" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname.includes('/store/library') ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
                   <Box className="h-3.5 w-3.5 text-purple-400" />
                   library.db
+                </Link>
+                <Link to="/store/wallet" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname.includes('/store/wallet') ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
+                  <Box className="h-3.5 w-3.5 text-amber-400" />
+                  wallet.cfg
                 </Link>
                 <Link to="/store/friends" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname.includes('/store/friends') ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
                   <Box className="h-3.5 w-3.5 text-orange-400" />

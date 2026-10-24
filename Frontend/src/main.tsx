@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './Context/AuthContext'
 import { CartProvider } from './Context/CartContext'
 import { WishlistProvider } from './Context/WishlistContext'
+import { WalletProvider } from './Context/WalletContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
       <WishlistProvider>
         <CartProvider>
           <AuthProvider>
-            <App />
+            <WalletProvider>
+              <App />
+            </WalletProvider>
           </AuthProvider>
         </CartProvider>
       </WishlistProvider>

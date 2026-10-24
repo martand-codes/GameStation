@@ -28,6 +28,12 @@ app.use("/api/admin", adminRoutes);
 import paymentRoutes from "./Routes/payment.routes.js";
 app.use("/api/payments", paymentRoutes);
 
+import walletRoutes from "./Routes/wallet.routes.js";
+app.use("/api/wallet", walletRoutes);
+
+import telemetryRoutes from "./Routes/telemetry.routes.js";
+app.use("/api/telemetry", telemetryRoutes);
+
 app.get("/", (_req: Request, res: Response) => {
     res.status(200).send("Health Route working!");
 });

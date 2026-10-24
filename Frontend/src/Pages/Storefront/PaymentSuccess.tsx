@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../Api/Axios';
-import { CheckCircle2, Gamepad2, ArrowRight, ShieldCheck, Terminal, Sparkles } from 'lucide-react';
+import { CheckCircle2, Gamepad2, ArrowRight, ShieldCheck, Terminal, Sparkles, Coins } from 'lucide-react';
 import { useCart } from '../../Context/CartContext';
+import { useWallet } from '../../Context/WalletContext';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const navigate = useNavigate();
   const { clearCart } = useCart();
+  const { refreshWallet } = useWallet();
 
   const [loading, setLoading] = useState(true);
   const [sessionData, setSessionData] = useState<any>(null);
@@ -30,6 +32,9 @@ export default function PaymentSuccess() {
 
         if (response.data.success) {
           setSessionData(response.data);
+          if (response.data.type === 'wallet_topup') {
+            refreshWallet();
+          }
         } else {
           setError(response.data.message || 'Payment not verified');
         }
@@ -74,6 +79,8 @@ export default function PaymentSuccess() {
     );
   }
 
+  const isWalletTopup = sessionData?.type === 'wallet_topup';
+
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 font-mono animate-in fade-in zoom-in-95 duration-500">
       {/* Top Banner */}
@@ -81,19 +88,25 @@ export default function PaymentSuccess() {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 animate-pulse" />
         
         <div className="inline-flex p-3 bg-emerald-500/10 border border-emerald-500/40 rounded-full mb-4 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-          <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+          {isWalletTopup ? (
+            <Coins className="w-12 h-12 text-emerald-400" />
+          ) : (
+            <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+          )}
         </div>
 
         <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 tracking-widest uppercase mb-1">
-          <Sparkles className="w-4 h-4" /> LICENSE_ACTIVATED
+          <Sparkles className="w-4 h-4" /> {isWalletTopup ? 'PTS_VAULT_RECHARGED' : 'LICENSE_ACTIVATED'}
         </div>
 
         <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-3">
-          ORDER CONFIRMED & ACTIVATED!
+          {isWalletTopup ? 'PTS RECHARGE CONFIRMED!' : 'ORDER CONFIRMED & ACTIVATED!'}
         </h1>
 
         <p className="text-[#8B949E] max-w-xl mx-auto text-sm leading-relaxed">
-          Payment successfully processed via Stripe. The game licenses have been permanently tethered to your GameStation ID.
+          {isWalletTopup 
+            ? `Your recharge of ₹${sessionData?.amountTotal?.toFixed(2)} PTS has been verified and deposited into your GameStation Wallet vault.`
+            : 'Payment successfully processed via Stripe. The game licenses have been permanently tethered to your GameStation ID.'}
         </p>
 
         {/* Transaction Meta */}
@@ -106,8 +119,14 @@ export default function PaymentSuccess() {
             <div>
               <span className="text-[#556772]">AMOUNT:</span>{' '}
               <span className="text-white font-bold">
-                {sessionData?.currency} {sessionData?.amountTotal.toFixed(2)}
+                ₹{sessionData?.amountTotal.toFixed(2)} {isWalletTopup ? 'PTS' : sessionData?.currency}
               </span>
+            </div>
+          )}
+          {isWalletTopup && sessionData?.newBalance !== undefined && (
+            <div>
+              <span className="text-[#556772]">UPDATED VAULT:</span>{' '}
+              <span className="text-emerald-400 font-bold">₹{sessionData.newBalance.toFixed(2)} PTS</span>
             </div>
           )}
           {sessionData?.customerEmail && (
@@ -119,8 +138,8 @@ export default function PaymentSuccess() {
         </div>
       </div>
 
-      {/* Unlocked Games Grid */}
-      {sessionData?.games && sessionData.games.length > 0 && (
+      {/* Unlocked Games Grid (For game purchases) */}
+      {!isWalletTopup && sessionData?.games && sessionData.games.length > 0 && (
         <div className="space-y-4 mb-8">
           <h2 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
             <Gamepad2 className="w-4 h-4 text-emerald-400" />
@@ -171,18 +190,37 @@ export default function PaymentSuccess() {
 
       {/* Navigation Actions */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-        <button
-          onClick={() => navigate('/store/library')}
-          className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-sm text-sm tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center justify-center gap-2"
-        >
-          <Gamepad2 className="w-4 h-4" /> Go to My Library
-        </button>
-        <button
-          onClick={() => navigate('/store')}
-          className="w-full sm:w-auto px-8 py-3 bg-[#161B22] hover:bg-[#21262D] text-white border border-[#30363D] hover:border-emerald-500/50 font-bold rounded-sm text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2"
-        >
-          Explore More Games <ArrowRight className="w-4 h-4" />
-        </button>
+        {isWalletTopup ? (
+          <>
+            <button
+              onClick={() => navigate('/store/wallet')}
+              className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-sm text-sm tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
+            >
+              <Coins className="w-4 h-4" /> Go to PTS Wallet
+            </button>
+            <button
+              onClick={() => navigate('/store')}
+              className="w-full sm:w-auto px-8 py-3 bg-[#161B22] hover:bg-[#21262D] text-white border border-[#30363D] hover:border-emerald-500/50 font-bold rounded-sm text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2"
+            >
+              Browse Games <ArrowRight className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => navigate('/store/library')}
+              className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-sm text-sm tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center justify-center gap-2"
+            >
+              <Gamepad2 className="w-4 h-4" /> Go to My Library
+            </button>
+            <button
+              onClick={() => navigate('/store')}
+              className="w-full sm:w-auto px-8 py-3 bg-[#161B22] hover:bg-[#21262D] text-white border border-[#30363D] hover:border-emerald-500/50 font-bold rounded-sm text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2"
+            >
+              Explore More Games <ArrowRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

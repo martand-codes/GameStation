@@ -3,6 +3,8 @@ import { api } from '../Api/Axios';
 export interface LibraryItem {
   libraryId: string;
   acquiredAt: string;
+  playTime?: number;
+  lastPlayed?: string | null;
   ownedPricing?: {
     id: string;
     editionName: string;

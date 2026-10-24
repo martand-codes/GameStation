@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { X, Trash2, CreditCard, CheckCircle } from 'lucide-react';
+import { X, Trash2, CreditCard, CheckCircle, Coins } from 'lucide-react';
 import { useCart } from '../../Context/CartContext';
+import { useWallet } from '../../Context/WalletContext';
+import { checkoutWithWalletAPI } from '../../Services/Wallet.service';
+import { Link } from 'react-router-dom';
 
 import { api } from '../../Api/Axios';
 
@@ -11,10 +14,44 @@ interface CartDrawerProps {
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { items, removeFromCart, total, clearCart } = useCart();
+  const { balance, refreshWallet } = useWallet();
   const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'processing' | 'success'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const hasEnoughPTS = balance >= total && total > 0;
+
+  const handleWalletCheckout = async () => {
+    try {
+      setCheckoutStatus('processing');
+      setErrorMessage(null);
+
+      const response = await checkoutWithWalletAPI({
+        items: items.map(item => ({
+          gameId: item.gameId,
+          editionName: item.editionName,
+        })),
+      });
+
+      if (response.success) {
+        setCheckoutStatus('success');
+        clearCart();
+        await refreshWallet();
+        setTimeout(() => {
+          onClose();
+          setCheckoutStatus('idle');
+        }, 1800);
+      } else {
+        setCheckoutStatus('idle');
+        setErrorMessage(response.message || 'Payment initialization failed');
+      }
+    } catch (err: any) {
+      console.error('Wallet checkout error:', err);
+      setCheckoutStatus('idle');
+      setErrorMessage(err.response?.data?.message || 'Error executing wallet checkout');
+    }
+  };
 
   const handleCheckout = async () => {
     try {
@@ -145,14 +182,44 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </div>
             )}
 
-            <button 
-              onClick={handleCheckout}
-              disabled={checkoutStatus === 'processing'}
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 text-white font-bold rounded-sm flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]"
-            >
-              <CreditCard className="h-5 w-5" />
-              {checkoutStatus === 'processing' ? 'Connecting to Stripe...' : `Pay ₹${total.toFixed(2)} with Stripe`}
-            </button>
+            {/* Dual Checkout Options */}
+            <div className="space-y-2">
+              {/* Option 1: Instant PTS Wallet */}
+              {hasEnoughPTS ? (
+                <button
+                  onClick={handleWalletCheckout}
+                  disabled={checkoutStatus === 'processing'}
+                  className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-black font-black rounded-sm flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] text-xs uppercase tracking-wider"
+                >
+                  <Coins className="h-4 w-4" />
+                  <span>1-Click Pay ₹{total.toFixed(2)} PTS (Vault: ₹{balance.toFixed(0)})</span>
+                </button>
+              ) : (
+                <div className="flex items-center justify-between p-2 bg-[#0D1117] border border-[#30363D] rounded text-[11px]">
+                  <div className="flex items-center gap-1.5 text-[#8B949E]">
+                    <Coins className="h-3.5 w-3.5 text-amber-400" />
+                    <span>PTS Vault: ₹{balance.toFixed(0)}</span>
+                  </div>
+                  <Link
+                    to="/store/wallet"
+                    onClick={onClose}
+                    className="text-emerald-400 font-bold hover:underline"
+                  >
+                    + Top Up PTS
+                  </Link>
+                </div>
+              )}
+
+              {/* Option 2: Stripe Gateway */}
+              <button 
+                onClick={handleCheckout}
+                disabled={checkoutStatus === 'processing'}
+                className="w-full py-2.5 bg-[#161B22] hover:bg-[#21262D] border border-[#30363D] hover:border-emerald-500/50 disabled:opacity-50 text-white font-bold rounded-sm flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-wider"
+              >
+                <CreditCard className="h-4 w-4 text-[#8B949E]" />
+                <span>{checkoutStatus === 'processing' ? 'Connecting to Stripe...' : `Pay ₹${total.toFixed(2)} with Stripe`}</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

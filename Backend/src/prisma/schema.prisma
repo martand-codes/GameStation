@@ -39,6 +39,10 @@ model User {
   payments      Payment[]
   library       UserLibrary[]
 
+  // For Wallet
+  walletBalance         Decimal                         @default(0.00)
+  walletTransactions    Wallet[]
+
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt      
 }
@@ -219,7 +223,36 @@ model UserLibrary {
   game      Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
   pricingId String?
   pricing   GamePricing? @relation(fields: [pricingId], references: [id], onDelete: SetNull)
+  
+  // For Tracking What's Played
+  playTime    Int            @default(0)    // In seconds
+  lastPlayed  DateTime?     
+
   createdAt DateTime     @default(now())
 
   @@unique([userId, gameId])
 }
+
+
+// Wallet model
+
+enum WalletTransactionType {
+  TOP_UP
+  GAME_PURCHASE
+  REFUND
+  BONUS
+}
+
+model Wallet {
+  id              String                  @id @default(uuid())
+  userId          String                  
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Decimal
+  type            WalletTransactionType   
+  description     String?   
+  referenceId     String?                
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt 
+}
+

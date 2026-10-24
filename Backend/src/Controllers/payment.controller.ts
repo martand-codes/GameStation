@@ -360,6 +360,53 @@ export const getSessionStatus = async (req: AuthRequest, res: Response): Promise
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status === "paid") {
+      // Handle Wallet Top-Up Session
+      if (session.metadata?.type === "WALLET_TOPUP") {
+        const topupUserId = String(session.metadata.userId || userId || "");
+        const topupAmount = Number(session.metadata.amount);
+
+        if (topupUserId && topupAmount > 0) {
+          const existingTx = await prisma.wallet.findFirst({
+            where: { referenceId: session.id },
+          });
+
+          if (!existingTx) {
+            await prisma.$transaction([
+              prisma.user.update({
+                where: { id: topupUserId },
+                data: { walletBalance: { increment: topupAmount } },
+              }),
+              prisma.wallet.create({
+                data: {
+                  userId: topupUserId,
+                  amount: topupAmount,
+                  type: "TOP_UP",
+                  description: `Topped up ₹${topupAmount.toFixed(2)} PTS via Stripe`,
+                  referenceId: session.id,
+                },
+              }),
+            ]);
+          }
+        }
+
+        const updatedUser = topupUserId
+          ? await prisma.user.findUnique({
+              where: { id: topupUserId },
+              select: { walletBalance: true },
+            })
+          : null;
+
+        res.status(200).json({
+          success: true,
+          status: "paid",
+          type: "wallet_topup",
+          amountTotal: topupAmount,
+          currency: "INR",
+          newBalance: Number(updatedUser?.walletBalance || 0),
+        });
+        return;
+      }
+
       const metaUserId = session.metadata?.userId || userId;
       const paymentId = session.metadata?.paymentId;
       const paymentIdsStr = session.metadata?.paymentIds;
@@ -504,6 +551,38 @@ export const handleStripeWebhook = async (req: any, res: Response): Promise<void
       } catch (dbError) {
         console.error("Failed to update database on checkout.session.completed:", dbError);
       }
+    } else if (session.metadata?.type === "WALLET_TOPUP") {
+      try {
+        const topupUserId = session.metadata.userId;
+        const topupAmount = Number(session.metadata.amount);
+
+        if (topupUserId && topupAmount > 0) {
+          const existingTx = await prisma.wallet.findFirst({
+            where: { referenceId: session.id },
+          });
+
+          if (!existingTx) {
+            await prisma.$transaction([
+              prisma.user.update({
+                where: { id: topupUserId },
+                data: { walletBalance: { increment: topupAmount } },
+              }),
+              prisma.wallet.create({
+                data: {
+                  userId: topupUserId,
+                  amount: topupAmount,
+                  type: "TOP_UP",
+                  description: `Topped up ₹${topupAmount.toFixed(2)} PTS via Stripe`,
+                  referenceId: session.id,
+                },
+              }),
+            ]);
+            console.log(`💳 Webhook: Topped up ₹${topupAmount} PTS for user ${topupUserId}!`);
+          }
+        }
+      } catch (topupError) {
+        console.error("Failed to process wallet topup in webhook:", topupError);
+      }
     }
   }
 
@@ -577,6 +656,8 @@ export const getUserLibrary = async (req: AuthRequest, res: Response): Promise<v
       data: libraryItems.map((item: any) => ({
         libraryId: item.id,
         acquiredAt: item.createdAt,
+        playTime: item.playTime || 0,
+        lastPlayed: item.lastPlayed || null,
         ownedPricing: item.pricing,
         latestPayment: paymentByGame.get(item.gameId) || null,
         game: item.game,
@@ -670,3 +751,238 @@ export const checkGameOwnership = async (req: AuthRequest, res: Response): Promi
     res.status(500).json({ success: false, message: "Failed to verify ownership" });
   }
 };
+
+/**
+ * 7. CHECK REFUND ELIGIBILITY (Steam 14-day / 2-hour Playtime Rules)
+ * GET /api/payments/refund-eligibility/:gameId
+ */
+export const getRefundEligibility = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    const rawGameId = req.params.gameId;
+    const gameId = typeof rawGameId === "string" ? rawGameId : "";
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    if (!gameId) {
+      res.status(400).json({ success: false, message: "Valid gameId is required" });
+      return;
+    }
+
+    // 1. Verify user owns the game
+    const libraryItem: any = await prisma.userLibrary.findUnique({
+      where: { userId_gameId: { userId, gameId } },
+      include: { game: true, pricing: true },
+    });
+
+    if (!libraryItem) {
+      res.status(404).json({ success: false, message: "Game not found in your library" });
+      return;
+    }
+
+    // 2. Find latest successful payment for this game
+    const payment = await prisma.payment.findFirst({
+      where: { userId, gameId, status: "SUCCESS" },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!payment) {
+      res.status(400).json({
+        success: false,
+        message: "No refundable purchase found. This game may have been claimed for free or already refunded.",
+      });
+      return;
+    }
+
+    const playTimeSeconds = libraryItem.playTime || 0;
+    const playTimeMinutes = Math.floor(playTimeSeconds / 60);
+    const maxPlayTimeMinutes = 120; // 2 hours
+
+    const daysSincePurchase = (Date.now() - new Date(payment.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    const maxDays = 14;
+
+    const playTimePass = playTimeSeconds <= 7200;
+    const purchaseDatePass = daysSincePurchase <= maxDays;
+    const isEligible = playTimePass && purchaseDatePass && Number(payment.amount) > 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        gameId,
+        gameTitle: libraryItem.game.title,
+        paymentId: payment.id,
+        refundableAmount: Number(payment.amount),
+        provider: payment.provider, // "stripe" | "wallet"
+        purchasedAt: payment.createdAt,
+        daysSincePurchase: Math.floor(daysSincePurchase),
+        daysRemaining: Math.max(0, Math.ceil(maxDays - daysSincePurchase)),
+        playTimeSeconds,
+        playTimeMinutes,
+        maxPlayTimeMinutes,
+        playTimePass,
+        purchaseDatePass,
+        isEligible,
+      },
+    });
+  } catch (error) {
+    console.error("Refund eligibility check error:", error);
+    res.status(500).json({ success: false, message: "Failed to evaluate refund eligibility" });
+  }
+};
+
+/**
+ * 8. REQUEST & PROCESS REFUND
+ * POST /api/payments/refund/:gameId
+ */
+export const requestRefund = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    const rawGameId = req.params.gameId;
+    const gameId = typeof rawGameId === "string" ? rawGameId : "";
+    const { refundTarget, reason } = req.body; // refundTarget: "WALLET" | "ORIGINAL_PAYMENT"
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    if (!gameId) {
+      res.status(400).json({ success: false, message: "Valid gameId is required" });
+      return;
+    }
+
+    // 1. Verify ownership in library
+    const libraryItem: any = await prisma.userLibrary.findUnique({
+      where: { userId_gameId: { userId, gameId } },
+      include: { game: true },
+    });
+
+    if (!libraryItem) {
+      res.status(404).json({ success: false, message: "Game not found in library" });
+      return;
+    }
+
+    // 2. Playtime check (<= 2 hours / 7200s)
+    const playTimeSeconds = libraryItem.playTime || 0;
+    if (playTimeSeconds > 7200) {
+      res.status(400).json({
+        success: false,
+        message: `Refund Denied: Playtime (${Math.floor(playTimeSeconds / 60)} mins) exceeds the 2 hours limit (Steam Policy).`,
+      });
+      return;
+    }
+
+    // 3. Find successful payment
+    const payment = await prisma.payment.findFirst({
+      where: { userId, gameId, status: "SUCCESS" },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!payment) {
+      res.status(400).json({ success: false, message: "No active payment found to refund" });
+      return;
+    }
+
+    // 4. 14-day window check
+    const daysSincePurchase = (Date.now() - new Date(payment.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSincePurchase > 14) {
+      res.status(400).json({
+        success: false,
+        message: `Refund Denied: Purchase was made more than 14 days ago (${Math.floor(daysSincePurchase)} days ago).`,
+      });
+      return;
+    }
+
+    const refundAmount = Number(payment.amount);
+    // If original payment was with wallet, refund must go back to wallet
+    const target = payment.provider === "wallet" ? "WALLET" : refundTarget === "ORIGINAL_PAYMENT" ? "ORIGINAL_PAYMENT" : "WALLET";
+
+    if (target === "WALLET") {
+      // Instant PTS Wallet Refund
+      const result = await prisma.$transaction(async (tx) => {
+        // Credit user's wallet
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: { walletBalance: { increment: refundAmount } },
+          select: { walletBalance: true },
+        });
+
+        // Record wallet ledger transaction
+        await tx.wallet.create({
+          data: {
+            userId,
+            amount: refundAmount,
+            type: "REFUND",
+            description: `Refund for "${libraryItem.game.title}"${reason ? ` (${reason})` : ""}`,
+            referenceId: payment.id,
+          },
+        });
+
+        // Update payment status
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { status: "REFUNDED" },
+        });
+
+        // Revoke license from user library
+        await tx.userLibrary.delete({
+          where: { id: libraryItem.id },
+        });
+
+        return updatedUser;
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Refund processed! ₹${refundAmount.toFixed(2)} PTS has been credited to your GameStation Wallet.`,
+        refundMethod: "WALLET",
+        refundedAmount: refundAmount,
+        newBalance: Number(result.walletBalance),
+      });
+      return;
+    } else {
+      // Stripe Gateway Card Reversal
+      if (!payment.providerPaymentId) {
+        res.status(400).json({
+          success: false,
+          message: "Unable to process gateway refund: Missing Stripe payment reference. You can choose refund to Wallet PTS instead.",
+        });
+        return;
+      }
+
+      await stripe.refunds.create({
+        payment_intent: payment.providerPaymentId,
+        reason: "requested_by_customer",
+      });
+
+      // Update DB
+      await prisma.$transaction([
+        prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: "REFUNDED" },
+        }),
+        prisma.userLibrary.delete({
+          where: { id: libraryItem.id },
+        }),
+      ]);
+
+      res.status(200).json({
+        success: true,
+        message: `Refund initiated! ₹${refundAmount.toFixed(2)} will be credited back to your original payment method in 5-10 business days.`,
+        refundMethod: "STRIPE",
+        refundedAmount: refundAmount,
+      });
+      return;
+    }
+  } catch (error: any) {
+    console.error("Refund processing error:", error);
+    res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to process refund request",
+    });
+  }
+};
+

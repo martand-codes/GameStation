@@ -2,12 +2,14 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Terminal, Gamepad2, Search, Filter, LayoutGrid, List, Play, Download, 
-  ShieldCheck, Clock, HardDrive, ExternalLink, ArrowRight, RefreshCw, AlertCircle
+  ShieldCheck, Clock, HardDrive, ExternalLink, ArrowRight, RefreshCw, AlertCircle, RotateCcw
 } from 'lucide-react';
 import { getPlayerLibraryAPI, type LibraryItem } from '../../Services/Library.service';
+import { recordPlaytimeAPI } from '../../Services/Telemetry.service';
 import GameLauncherModal from '../../Components/Store/GameLauncherModal';
 import DigitalLicenseModal from '../../Components/Store/DigitalLicenseModal';
 import VersionHistoryModal from '../../Components/Store/VersionHistoryModal';
+import RefundRequestModal from '../../Components/Store/RefundRequestModal';
 
 export default function Library() {
   const navigate = useNavigate();
@@ -29,6 +31,7 @@ export default function Library() {
   const [launchingItem, setLaunchingItem] = useState<LibraryItem | null>(null);
   const [licenseItem, setLicenseItem] = useState<LibraryItem | null>(null);
   const [versionItem, setVersionItem] = useState<LibraryItem | null>(null);
+  const [refundItem, setRefundItem] = useState<LibraryItem | null>(null);
 
   // Local playtime storage tracking
   const [playtimes, setPlaytimes] = useState<Record<string, number>>(() => {
@@ -47,6 +50,14 @@ export default function Library() {
       const res = await getPlayerLibraryAPI();
       if (res.success) {
         setItems(res.data);
+        // Sync database playtime into local state
+        const dbPlaytimes: Record<string, number> = {};
+        res.data.forEach((item) => {
+          if (item.playTime !== undefined) {
+            dbPlaytimes[item.game.id] = item.playTime;
+          }
+        });
+        setPlaytimes((prev) => ({ ...prev, ...dbPlaytimes }));
         setLogs(prev => [...prev, `> [OK] Discovered ${res.data.length} registered digital licenses.`]);
       } else {
         setError('Failed to fetch player library.');
@@ -64,13 +75,19 @@ export default function Library() {
     fetchLibrary();
   }, []);
 
-  const handleUpdatePlaytime = (gameId: string, additionalSeconds: number) => {
+  const handleUpdatePlaytime = async (gameId: string, additionalSeconds: number) => {
     setPlaytimes(prev => {
       const current = prev[gameId] || 0;
       const updated = { ...prev, [gameId]: current + additionalSeconds };
       localStorage.setItem('gamestation_playtimes', JSON.stringify(updated));
       return updated;
     });
+
+    try {
+      await recordPlaytimeAPI(gameId, additionalSeconds);
+    } catch (err) {
+      console.error('Playtime telemetry sync failed:', err);
+    }
   };
 
   // Available unique genres
@@ -396,6 +413,15 @@ export default function Library() {
                       <ShieldCheck className="w-3.5 h-3.5" />
                     </button>
 
+                    {/* Refund Dispute Button */}
+                    <button
+                      onClick={() => setRefundItem(item)}
+                      className="p-1.5 bg-[#161B22] hover:bg-red-600/20 text-[#8B949E] hover:text-red-400 border border-[#30363D] hover:border-red-500/40 rounded transition-colors"
+                      title="Request 14-day / 2-hr Refund"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+
                     {/* Store Page */}
                     <button
                       onClick={() => navigate(`/store/games/${item.game.id}`)}
@@ -493,6 +519,13 @@ export default function Library() {
                           <ShieldCheck className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          onClick={() => setRefundItem(item)}
+                          className="p-1 bg-[#161B22] hover:bg-red-600/20 text-[#8B949E] hover:text-red-400 border border-[#30363D] rounded transition-colors"
+                          title="Request Refund"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => setVersionItem(item)}
                           className="p-1 bg-[#161B22] hover:bg-purple-600/20 text-[#8B949E] hover:text-purple-300 border border-[#30363D] rounded transition-colors"
                           title="Version Builds"
@@ -519,11 +552,24 @@ export default function Library() {
       <DigitalLicenseModal
         item={licenseItem}
         onClose={() => setLicenseItem(null)}
+        onRequestRefund={(item) => setRefundItem(item)}
       />
 
       <VersionHistoryModal
         item={versionItem}
         onClose={() => setVersionItem(null)}
+      />
+
+      <RefundRequestModal
+        gameId={refundItem?.game.id || null}
+        gameTitle={refundItem?.game.title}
+        isOpen={!!refundItem}
+        onClose={() => setRefundItem(null)}
+        onRefundSuccess={() => {
+          if (refundItem) {
+            setItems(prev => prev.filter(i => i.libraryId !== refundItem.libraryId));
+          }
+        }}
       />
 
     </div>

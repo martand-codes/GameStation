@@ -19,4 +19,9 @@ router.get("/library", requireToken as any, paymentController.getUserLibrary);
 // 5. Ownership Verification
 router.get("/ownership/:gameId", requireToken as any, paymentController.checkGameOwnership);
 
+// 6. Automated Refund Engine
+router.get("/refund-eligibility/:gameId", requireToken as any, paymentController.getRefundEligibility);
+router.post("/refund/:gameId", requireToken as any, paymentController.requestRefund);
+
 export default router;
+

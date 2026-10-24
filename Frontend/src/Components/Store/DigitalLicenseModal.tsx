@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { ShieldCheck, X, Copy, Check, Sparkles, Key, CreditCard, Calendar, Award } from 'lucide-react';
+import { ShieldCheck, X, Copy, Check, Sparkles, Key, CreditCard, Calendar, Award, RotateCcw } from 'lucide-react';
 import type { LibraryItem } from '../../Services/Library.service';
 
 interface DigitalLicenseModalProps {
   item: LibraryItem | null;
   onClose: () => void;
+  onRequestRefund?: (item: LibraryItem) => void;
 }
 
-export default function DigitalLicenseModal({ item, onClose }: DigitalLicenseModalProps) {
+export default function DigitalLicenseModal({ item, onClose, onRequestRefund }: DigitalLicenseModalProps) {
   if (!item) return null;
 
   const [copiedKey, setCopiedKey] = useState(false);
@@ -178,12 +179,26 @@ export default function DigitalLicenseModal({ item, onClose }: DigitalLicenseMod
         {/* Footer */}
         <div className="bg-[#111722] border-t border-[#223145] px-6 py-3 flex items-center justify-between text-xs">
           <span className="text-[11px] text-[#556772]">SHA-256: {item.libraryId.replace(/-/g, '').slice(0, 24)}...</span>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 bg-[#1B2533] hover:bg-[#253346] text-white rounded font-bold transition-colors"
-          >
-            Close Receipt
-          </button>
+          <div className="flex items-center gap-2">
+            {onRequestRefund && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onRequestRefund(item);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/40 rounded font-semibold transition-all hover:scale-[1.02]"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-red-400" />
+                <span>Request Refund</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="px-4 py-1.5 bg-[#1B2533] hover:bg-[#253346] text-white rounded font-bold transition-colors"
+            >
+              Close Receipt
+            </button>
+          </div>
         </div>
 
       </div>
