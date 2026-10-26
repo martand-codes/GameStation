@@ -1,8 +1,17 @@
 import type { Request, Response, NextFunction } from "express";
 import * as gameService from "../Services/game.service.js";
-import { createGameSchema, updateGameSchema, pricingSchema, discountSchema, mediaSchema, versionSchema } from "../Utils/game.validator.js";
+import { 
+  createGameSchema, 
+  updateGameSchema, 
+  pricingSchema, 
+  editionSchema,
+  discountSchema, 
+  mediaSchema, 
+  requirementsSchema,
+  telemetrySchema,
+  versionSchema 
+} from "../Utils/game.validator.js";
 
-// Types
 interface AuthRequest extends Request {
   user?: any;
 }
@@ -63,13 +72,36 @@ export const submitGame = async (req: AuthRequest, res: Response, next: NextFunc
   }
 };
 
-// Modular Updates
+// --- Modular Updates ---
 
 export const updatePricing = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const validatedData = pricingSchema.parse(req.body);
     const pricing = await gameService.updateGamePricing(req.params.id as string, req.user!.userId, validatedData);
     res.status(200).json(pricing);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const addEdition = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const validatedData = editionSchema.parse(req.body);
+    const edition = await gameService.addPricingEdition(req.params.id as string, req.user!.userId, validatedData);
+    res.status(201).json(edition);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteEdition = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await gameService.deletePricingEdition(
+      req.params.id as string, 
+      req.user!.userId, 
+      req.params.pricingId as string
+    );
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
@@ -90,6 +122,26 @@ export const updateMedia = async (req: AuthRequest, res: Response, next: NextFun
     const validatedData = mediaSchema.parse(req.body);
     const media = await gameService.updateGameMedia(req.params.id as string, req.user!.userId, validatedData);
     res.status(200).json(media);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateRequirements = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const validatedData = requirementsSchema.parse(req.body);
+    const requirements = await gameService.updateGameRequirements(req.params.id as string, req.user!.userId, validatedData);
+    res.status(200).json(requirements);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateTelemetry = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const validatedData = telemetrySchema.parse(req.body);
+    const telemetry = await gameService.updateGameTelemetry(req.params.id as string, req.user!.userId, validatedData);
+    res.status(200).json(telemetry);
   } catch (error) {
     next(error);
   }

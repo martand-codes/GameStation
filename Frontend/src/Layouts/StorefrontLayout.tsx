@@ -92,10 +92,10 @@ export default function StorefrontLayout() {
           <div className="flex items-center gap-6">
             
             {/* Developer Toggle */}
-            {(user?.role === 'DEVELOPER' || user?.role === 'ADMIN') && (
+            {(user?.role === 'DEVELOPER' || user?.role === 'ADMIN' || user?.role === 'OWNER') && (
               <button 
-                onClick={() => navigate('/dev/dashboard')}
-                className="hidden md:flex items-center gap-2 text-xs text-[#8B949E] hover:text-emerald-400 transition-colors"
+                onClick={() => navigate('/developer/dashboard')}
+                className="hidden md:flex items-center gap-2 text-xs text-[#8B949E] hover:text-emerald-400 transition-colors px-2 py-1 rounded border border-transparent hover:border-emerald-500/30 hover:bg-emerald-500/10"
               >
                 <Code className="h-4 w-4" />
                 <span>[SWITCH_TO_DEV]</span>
@@ -144,12 +144,18 @@ export default function StorefrontLayout() {
               </div>
               
               {/* Dropdown UI: Context Menu Style */}
-              <div className="absolute right-0 mt-2 w-48 bg-[#0D1117] border border-[#30363D] rounded-md shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="absolute right-0 mt-2 w-52 bg-[#0D1117] border border-[#30363D] rounded-md shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="p-3 border-b border-[#30363D]">
                   <p className="text-xs text-[#8B949E]">Current User:</p>
                   <p className="text-sm text-emerald-400 font-bold">@{user?.username || 'guest'}</p>
+                  <p className="text-[10px] text-neutral-500 font-mono">ROLE: {user?.role || 'PLAYER'}</p>
                 </div>
                 <div className="p-1">
+                  {(user?.role === 'DEVELOPER' || user?.role === 'ADMIN' || user?.role === 'OWNER') && (
+                    <Link to="/developer/dashboard" className="flex items-center px-3 py-2 text-sm text-emerald-400 hover:bg-[#161B22] rounded-sm font-bold border-b border-[#30363D]/50 mb-1">
+                      <Code className="h-3.5 w-3.5 mr-2" /> [dev_portal]
+                    </Link>
+                  )}
                   <Link to="/store/profile" className="flex items-center px-3 py-2 text-sm text-[#C9D1D9] hover:bg-[#161B22] hover:text-white rounded-sm">
                     <ChevronRight className="h-3 w-3 mr-2" /> .profile
                   </Link>
@@ -200,6 +206,12 @@ export default function StorefrontLayout() {
                   <Box className="h-3.5 w-3.5 text-amber-400" />
                   wallet.cfg
                 </Link>
+                {(user?.role === 'DEVELOPER' || user?.role === 'ADMIN' || user?.role === 'OWNER') && (
+                  <Link to="/developer/dashboard" className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors text-emerald-400/90 hover:text-emerald-300 hover:bg-[#0D1117] border border-transparent hover:border-emerald-500/30">
+                    <Code className="h-3.5 w-3.5 text-emerald-400" />
+                    developer.sh
+                  </Link>
+                )}
                 <Link to="/store/friends" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname.includes('/store/friends') ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
                   <Box className="h-3.5 w-3.5 text-orange-400" />
                   network.cfg

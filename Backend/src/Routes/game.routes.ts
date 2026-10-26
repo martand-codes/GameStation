@@ -7,7 +7,7 @@ const router = Router();
 
 // Apply auth and role middleware to all developer routes
 router.use(requireToken);
-router.use(requireRole(["DEVELOPER"]));
+router.use(requireRole(["DEVELOPER", "ADMIN", "OWNER"]));
 
 // Core Game Routes
 router.post("/", gameController.createGame);
@@ -18,8 +18,12 @@ router.delete("/:id", gameController.deleteGame);
 
 // Modular Config Updates
 router.put("/:id/pricing", gameController.updatePricing);
+router.post("/:id/pricing/edition", gameController.addEdition);
+router.delete("/:id/pricing/edition/:pricingId", gameController.deleteEdition);
 router.post("/:id/discounts", gameController.addDiscount);
 router.put("/:id/media", gameController.updateMedia);
+router.put("/:id/requirements", gameController.updateRequirements);
+router.put("/:id/telemetry", gameController.updateTelemetry);
 router.post("/:id/versions", gameController.addVersion);
 
 // Submission Workflow

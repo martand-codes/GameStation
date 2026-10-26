@@ -49,7 +49,8 @@ api.interceptors.response.use(
         // If the refresh token is dead or invalid, wipe everything and force login
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.reload(); 
+        localStorage.removeItem('user');
+        window.location.href = '/auth';
         return Promise.reject(refreshError);
       }
     }

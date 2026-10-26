@@ -6,6 +6,7 @@ import DeveloperLayout from './Layouts/DeveloperLayout';
 import DeveloperDashboard from './Pages/DeveloperDashboard';
 import DeveloperAnalytics from './Pages/DeveloperAnalytics';
 import DeveloperRevenue from './Pages/DeveloperRevenue';
+import CreateGame from './Pages/CreateGame';
 import { useAuth } from './Context/AuthContext';
 import StorefrontLayout from './Layouts/StorefrontLayout';
 import Home from './Pages/Storefront/Home';
@@ -26,6 +27,7 @@ const App = () => {
       <Route path="/developer" element={isAuthenticated ? <DeveloperLayout /> : <Navigate to="/auth" />}>
         <Route path="dashboard" element={<DeveloperDashboard />} />
         <Route path="portal" element={<DeveloperPortal />} />
+        <Route path="games/new" element={<CreateGame />} />
         <Route path="games/:id" element={<GameConfig />} />
         <Route path="analytics" element={<DeveloperAnalytics />} />
         <Route path="revenue" element={<DeveloperRevenue />} />

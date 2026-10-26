@@ -30,6 +30,16 @@ export const updatePricingAPI = async (id: string, data: any) => {
   return response.data;
 };
 
+export const addEditionAPI = async (id: string, data: any) => {
+  const response = await api.post(`/developer/games/${id}/pricing/edition`, data);
+  return response.data;
+};
+
+export const deleteEditionAPI = async (id: string, pricingId: string) => {
+  const response = await api.delete(`/developer/games/${id}/pricing/edition/${pricingId}`);
+  return response.data;
+};
+
 export const addDiscountAPI = async (id: string, data: any) => {
   const response = await api.post(`/developer/games/${id}/discounts`, data);
   return response.data;
@@ -37,6 +47,16 @@ export const addDiscountAPI = async (id: string, data: any) => {
 
 export const updateMediaAPI = async (id: string, data: any) => {
   const response = await api.put(`/developer/games/${id}/media`, data);
+  return response.data;
+};
+
+export const updateRequirementsAPI = async (id: string, data: any) => {
+  const response = await api.put(`/developer/games/${id}/requirements`, data);
+  return response.data;
+};
+
+export const updateTelemetryAPI = async (id: string, data: any) => {
+  const response = await api.put(`/developer/games/${id}/telemetry`, data);
   return response.data;
 };
 
