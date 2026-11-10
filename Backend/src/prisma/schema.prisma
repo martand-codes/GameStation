@@ -41,6 +41,7 @@ model User {
 
   // Admin & Staff Governance
   reviewedGames         Game[]          @relation("AdminReviewedGames")
+  assignedGameReviews   Game[]          @relation("AssignedGameReviews")
   createdInvites        StaffInvite[]   @relation("StaffInvitesCreated")
   recoveryPhraseHash    String?
   securityQuestions     String?
@@ -96,6 +97,12 @@ model Game {
   reviewedByAdminId    String?
   reviewedByAdmin      User?             @relation("AdminReviewedGames", fields: [reviewedByAdminId], references: [id])
   reviewedAt           DateTime?
+
+  // Module 1: Task Assignment & Claim Lock Engine
+  assignedAdminId      String?
+  assignedAdmin        User?             @relation("AssignedGameReviews", fields: [assignedAdminId], references: [id])
+  assignedAt           DateTime?
+  qaNotes              String?
 
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt 

@@ -69,7 +69,7 @@ export default function AcceptStaffInvite() {
       });
 
       login(res.user, res.accessToken, res.refreshToken);
-      navigate('/certification/queue');
+      navigate('/admin/dashboard');
     } catch (err: any) {
       setFormError(err.response?.data?.message || 'Failed to claim staff invitation.');
     } finally {

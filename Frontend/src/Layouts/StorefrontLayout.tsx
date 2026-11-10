@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins, Crown, AlertTriangle, Radio, Megaphone, X, ShieldAlert } from 'lucide-react';
+import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins, Crown, AlertTriangle, Radio, Megaphone, X, ShieldAlert, Shield } from 'lucide-react';
 import { useAuth } from '../Context/AuthContext';
 import { useCart } from '../Context/CartContext';
 import { useWishlist } from '../Context/WishlistContext';
@@ -284,13 +284,18 @@ export default function StorefrontLayout() {
                 </div>
                 <div className="p-1">
                   {user?.role === 'OWNER' && (
-                    <Link to="/platform/governance" className="flex items-center px-3 py-2 text-sm text-yellow-400 hover:bg-[#161B22] rounded-sm font-bold border-b border-[#30363D]/50 mb-1">
-                      <Crown className="h-3.5 w-3.5 mr-2 text-yellow-400" /> [governance_suite]
+                    <Link to="/platform/governance" className="flex items-center px-3 py-2 text-sm text-red-400 hover:bg-[#161B22] rounded-sm font-bold border-b border-[#30363D]/50 mb-1">
+                      <Crown className="h-3.5 w-3.5 mr-2 text-[#FF1E27]" /> [sovereign_cockpit]
                     </Link>
                   )}
-                  {(user?.role === 'DEVELOPER' || user?.role === 'ADMIN' || user?.role === 'OWNER') && (
+                  {(user?.role === 'ADMIN' || user?.role === 'OWNER') && (
+                    <Link to="/admin/dashboard" className="flex items-center px-3 py-2 text-sm text-blue-400 hover:bg-[#161B22] rounded-sm font-bold border-b border-[#30363D]/50 mb-1">
+                      <Shield className="h-3.5 w-3.5 mr-2 text-blue-400" /> [admin_operations]
+                    </Link>
+                  )}
+                  {(user?.role === 'DEVELOPER' || user?.role === 'OWNER') && (
                     <Link to="/developer/dashboard" className="flex items-center px-3 py-2 text-sm text-emerald-400 hover:bg-[#161B22] rounded-sm font-bold border-b border-[#30363D]/50 mb-1">
-                      <Code className="h-3.5 w-3.5 mr-2" /> [dev_portal]
+                      <Code className="h-3.5 w-3.5 mr-2 text-emerald-400" /> [dev_portal]
                     </Link>
                   )}
                   <Link to="/store/profile" className="flex items-center px-3 py-2 text-sm text-[#C9D1D9] hover:bg-[#161B22] hover:text-white rounded-sm">
