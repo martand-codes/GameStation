@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins } from 'lucide-react';
+import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins, Crown, AlertTriangle, Radio, Megaphone, X, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../Context/AuthContext';
 import { useCart } from '../Context/CartContext';
 import { useWishlist } from '../Context/WishlistContext';
 import { useWallet } from '../Context/WalletContext';
+import { getPublicBroadcastAPI } from '../Services/Governance.service';
 import CartDrawer from '../Components/Store/CartDrawer';
 import WishlistDrawer from '../Components/Store/WishlistDrawer';
 
@@ -16,9 +17,33 @@ export default function StorefrontLayout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [dismissedBroadcast, setDismissedBroadcast] = useState(false);
+  const [broadcast, setBroadcast] = useState<{
+    maintenanceMode?: boolean;
+    maintenanceNotice?: string;
+    marketplaceFrozen?: boolean;
+    broadcastActive?: boolean;
+    broadcastMessage?: string;
+    broadcastSeverity?: 'INFO' | 'WARNING' | 'CRITICAL';
+  } | null>(null);
   const { items } = useCart();
   const { items: wishlistItems } = useWishlist();
   const { balance } = useWallet();
+
+  useEffect(() => {
+    checkBroadcast();
+    const interval = setInterval(checkBroadcast, 30000); // 30s probe
+    return () => clearInterval(interval);
+  }, []);
+
+  const checkBroadcast = async () => {
+    try {
+      const data = await getPublicBroadcastAPI();
+      setBroadcast(data);
+    } catch {
+      // quiet fail if backend unreachable
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -59,6 +84,113 @@ export default function StorefrontLayout() {
   return (
     <div className="min-h-screen bg-black text-[#A0AEC0] font-mono flex flex-col selection:bg-emerald-500/30 selection:text-emerald-300">
       
+      {/* Sovereign Live Platform Marquee Broadcast Engine */}
+      {broadcast?.broadcastActive && broadcast?.broadcastMessage && !dismissedBroadcast && (
+        <aside
+          aria-label="Platform Broadcast"
+          className={`border-b text-xs px-4 sm:px-6 py-2.5 flex items-center justify-between font-mono z-50 relative overflow-hidden transition-all ${
+            broadcast.broadcastSeverity === 'CRITICAL'
+              ? 'bg-[#FF1E27]/20 border-[#FF1E27]/50 text-white shadow-[0_4px_20px_rgba(255,30,39,0.3)]'
+              : broadcast.broadcastSeverity === 'WARNING'
+              ? 'bg-amber-500/20 border-amber-500/40 text-amber-100 shadow-[0_4px_20px_rgba(245,158,11,0.25)]'
+              : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-100 shadow-[0_4px_20px_rgba(16,185,129,0.2)]'
+          }`}
+        >
+          <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0 mr-4">
+            <span
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                broadcast.broadcastSeverity === 'CRITICAL'
+                  ? 'bg-[#FF1E27] animate-ping'
+                  : broadcast.broadcastSeverity === 'WARNING'
+                  ? 'bg-amber-400 animate-ping'
+                  : 'bg-emerald-400 animate-ping'
+              }`}
+            />
+            <span
+              className={`font-black uppercase tracking-wider shrink-0 flex items-center gap-1.5 text-[11px] ${
+                broadcast.broadcastSeverity === 'CRITICAL'
+                  ? 'text-[#FF1E27]'
+                  : broadcast.broadcastSeverity === 'WARNING'
+                  ? 'text-amber-400'
+                  : 'text-emerald-400'
+              }`}
+            >
+              {broadcast.broadcastSeverity === 'CRITICAL' ? (
+                <ShieldAlert className="w-4 h-4" />
+              ) : broadcast.broadcastSeverity === 'WARNING' ? (
+                <AlertTriangle className="w-4 h-4" />
+              ) : (
+                <Radio className="w-4 h-4" />
+              )}
+              {broadcast.broadcastSeverity === 'CRITICAL'
+                ? 'CRITICAL ALERT:'
+                : broadcast.broadcastSeverity === 'WARNING'
+                ? 'ADVISORY NOTICE:'
+                : 'PLATFORM BROADCAST:'}
+            </span>
+            <span className="text-zinc-100 font-medium truncate">
+              {broadcast.broadcastMessage}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <span
+              className={`text-[9px] font-bold tracking-widest hidden md:inline uppercase px-2 py-0.5 rounded border ${
+                broadcast.broadcastSeverity === 'CRITICAL'
+                  ? 'bg-red-950/60 border-red-500/30 text-red-300'
+                  : broadcast.broadcastSeverity === 'WARNING'
+                  ? 'bg-amber-950/60 border-amber-500/30 text-amber-300'
+                  : 'bg-emerald-950/60 border-emerald-500/30 text-emerald-300'
+              }`}
+            >
+              LIVE DISPATCH
+            </span>
+            {broadcast.broadcastSeverity !== 'CRITICAL' && (
+              <button
+                onClick={() => setDismissedBroadcast(true)}
+                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+                title="Dismiss Broadcast"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </aside>
+      )}
+
+      {/* Sovereign Emergency Announcement Marquee / Alert */}
+      {broadcast?.maintenanceMode && (
+        <aside aria-label="System Advisory" className="bg-[#FF1E27]/20 border-b border-[#FF1E27]/40 text-white text-xs px-6 py-2.5 flex items-center justify-between font-mono z-50">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <span className="w-2 h-2 rounded-full bg-[#FF1E27] animate-ping shrink-0" />
+            <span className="font-black text-[#FF1E27] uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              SYSTEM ADVISORY:
+            </span>
+            <span className="text-zinc-200 truncate">{broadcast.maintenanceNotice || 'Platform undergoing scheduled maintenance.'}</span>
+          </div>
+          <span className="text-[10px] text-zinc-400 font-bold tracking-widest hidden sm:inline shrink-0 uppercase">
+            SOVEREIGN OVERRIDE
+          </span>
+        </aside>
+      )}
+
+      {broadcast?.marketplaceFrozen && !broadcast?.maintenanceMode && (
+        <aside aria-label="Marketplace Alert" className="bg-amber-500/15 border-b border-amber-500/30 text-white text-xs px-6 py-2 flex items-center justify-between font-mono z-50">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+            <span className="font-bold text-amber-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              MARKETPLACE NOTICE:
+            </span>
+            <span className="text-zinc-200 truncate">Platform transactions &amp; checkout are temporarily paused.</span>
+          </div>
+          <span className="text-[10px] text-amber-400 font-bold tracking-widest hidden sm:inline shrink-0 uppercase">
+            CHECKOUT PAUSED
+          </span>
+        </aside>
+      )}
+
       {/* Hacker/Engineer Topbar */}
       <header className="sticky top-0 z-50 border-b border-[#1A202C] bg-[#000000CC] backdrop-blur-md">
         <div className="flex items-center justify-between px-6 h-14">
@@ -151,6 +283,11 @@ export default function StorefrontLayout() {
                   <p className="text-[10px] text-neutral-500 font-mono">ROLE: {user?.role || 'PLAYER'}</p>
                 </div>
                 <div className="p-1">
+                  {user?.role === 'OWNER' && (
+                    <Link to="/platform/governance" className="flex items-center px-3 py-2 text-sm text-yellow-400 hover:bg-[#161B22] rounded-sm font-bold border-b border-[#30363D]/50 mb-1">
+                      <Crown className="h-3.5 w-3.5 mr-2 text-yellow-400" /> [governance_suite]
+                    </Link>
+                  )}
                   {(user?.role === 'DEVELOPER' || user?.role === 'ADMIN' || user?.role === 'OWNER') && (
                     <Link to="/developer/dashboard" className="flex items-center px-3 py-2 text-sm text-emerald-400 hover:bg-[#161B22] rounded-sm font-bold border-b border-[#30363D]/50 mb-1">
                       <Code className="h-3.5 w-3.5 mr-2" /> [dev_portal]

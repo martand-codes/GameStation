@@ -119,8 +119,15 @@ export const getGameById = async (gameId: string, developerId: string) => {
   return game;
 };
 
+export const assertGameEditable = (game: { status: string }) => {
+  if (game.status === "PENDING") {
+    throw new BadRequestError("Game is currently locked under administrative review. Modifications are frozen until review concludes.");
+  }
+};
+
 export const updateGame = async (gameId: string, developerId: string, data: UpdateGameInput) => {
-  await getGameById(gameId, developerId); // Ensuring Ownership
+  const game = await getGameById(gameId, developerId); // Ensuring Ownership
+  assertGameEditable(game);
 
   const updateData: any = {};
   if (data.title !== undefined) updateData.title = data.title;
@@ -150,26 +157,62 @@ export const deleteGame = async (gameId: string, developerId: string) => {
 export const submitGame = async (gameId: string, developerId: string) => {
   const game = await getGameById(gameId, developerId); // Ensuring Ownership
 
+  if (game.status === "PENDING") {
+    throw new BadRequestError("Cannot submit: Game is already pending administrative review.");
+  }
+  if (game.status === "PUBLISHED") {
+    throw new BadRequestError("Cannot submit: Game is already published on the live storefront.");
+  }
+
+  // 1. Core Metadata Validation
+  if (!game.title || game.title.trim().length < 2) {
+    throw new BadRequestError("Cannot submit: Game title must be at least 2 characters.");
+  }
+  if (!game.genre || game.genre.trim().length === 0) {
+    throw new BadRequestError("Cannot submit: Game genre is required.");
+  }
+  if (!game.description || game.description.trim().length < 15) {
+    throw new BadRequestError("Cannot submit: Comprehensive game description (at least 15 characters) is required.");
+  }
+
+  // 2. Pricing & Editions Validation
   if (!game.pricing || game.pricing.length === 0) {
-    throw new BadRequestError("Cannot submit: Game pricing is missing");
+    throw new BadRequestError("Cannot submit: At least one pricing edition (e.g. Standard Edition) must be configured.");
   }
-  if (!game.media) {
-    throw new BadRequestError("Cannot submit: Game media is missing");
+
+  // 3. Media Presentation Validation
+  if (!game.media || !game.media.coverImageUrl) {
+    throw new BadRequestError("Cannot submit: Storefront cover art image is required.");
   }
+  if (!game.media.screenshots || game.media.screenshots.length === 0) {
+    throw new BadRequestError("Cannot submit: At least one in-game screenshot is required.");
+  }
+
+  // 4. Hardware Specifications Validation
+  const reqs = game.requirements;
+  if (!reqs || !reqs.minOs || !reqs.minCpu || !reqs.minGpu || !reqs.minMem || !reqs.minStorage) {
+    throw new BadRequestError("Cannot submit: Complete minimum hardware specifications (OS, CPU, GPU, RAM, Storage) must be defined.");
+  }
+
+  // 5. Version Build Validation
   if (!game.versions || game.versions.length === 0) {
-    throw new BadRequestError("Cannot submit: Game must have at least one version uploaded");
+    throw new BadRequestError("Cannot submit: Game must have at least one executable version build deployed.");
   }
 
   return await prisma.game.update({
     where: { id: gameId },
-    data: { status: "PENDING" },
+    data: { 
+      status: "PENDING",
+      rejectionReason: null // Reset prior rejection notes on clean resubmission
+    },
   });
 };
 
 // --- Modular Config Updates ---
 
 export const updateGamePricing = async (gameId: string, developerId: string, data: PricingInput) => {
-  await getGameById(gameId, developerId);
+  const game = await getGameById(gameId, developerId);
+  assertGameEditable(game);
 
   if (data.id) {
     return await prisma.gamePricing.update({
@@ -214,7 +257,8 @@ export const updateGamePricing = async (gameId: string, developerId: string, dat
 };
 
 export const addPricingEdition = async (gameId: string, developerId: string, data: EditionInput) => {
-  await getGameById(gameId, developerId);
+  const game = await getGameById(gameId, developerId);
+  assertGameEditable(game);
 
   return await prisma.gamePricing.create({
     data: {
@@ -229,7 +273,8 @@ export const addPricingEdition = async (gameId: string, developerId: string, dat
 };
 
 export const deletePricingEdition = async (gameId: string, developerId: string, pricingId: string) => {
-  await getGameById(gameId, developerId);
+  const game = await getGameById(gameId, developerId);
+  assertGameEditable(game);
 
   const count = await prisma.gamePricing.count({ where: { gameId } });
   if (count <= 1) {
@@ -245,6 +290,7 @@ export const deletePricingEdition = async (gameId: string, developerId: string, 
 
 export const addGameDiscount = async (gameId: string, developerId: string, data: DiscountInput) => {
   const game = await getGameById(gameId, developerId);
+  assertGameEditable(game);
   const targetPricingId = data.pricingId || game.pricing?.[0]?.id;
   if (!targetPricingId) throw new BadRequestError("Pricing edition must be set before adding discounts");
 
@@ -259,7 +305,8 @@ export const addGameDiscount = async (gameId: string, developerId: string, data:
 };
 
 export const updateGameMedia = async (gameId: string, developerId: string, data: MediaInput) => {
-  await getGameById(gameId, developerId);
+  const game = await getGameById(gameId, developerId);
+  assertGameEditable(game);
 
   return await prisma.gameMedia.upsert({
     where: { gameId },
@@ -280,7 +327,8 @@ export const updateGameMedia = async (gameId: string, developerId: string, data:
 };
 
 export const updateGameRequirements = async (gameId: string, developerId: string, data: RequirementsInput) => {
-  await getGameById(gameId, developerId);
+  const game = await getGameById(gameId, developerId);
+  assertGameEditable(game);
 
   return await prisma.gameRequirements.upsert({
     where: { gameId },
@@ -317,7 +365,8 @@ export const updateGameRequirements = async (gameId: string, developerId: string
 };
 
 export const updateGameTelemetry = async (gameId: string, developerId: string, data: TelemetryInput) => {
-  await getGameById(gameId, developerId);
+  const game = await getGameById(gameId, developerId);
+  assertGameEditable(game);
 
   return await prisma.gameTelemetry.upsert({
     where: { gameId },
@@ -336,7 +385,8 @@ export const updateGameTelemetry = async (gameId: string, developerId: string, d
 };
 
 export const addGameVersion = async (gameId: string, developerId: string, data: VersionInput) => {
-  await getGameById(gameId, developerId);
+  const game = await getGameById(gameId, developerId);
+  assertGameEditable(game);
 
   return await prisma.gameVersion.create({
     data: {

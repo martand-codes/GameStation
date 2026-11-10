@@ -398,6 +398,18 @@ export default function GameConfig() {
   if (!game) return null;
 
   const isDraft = game.status === 'DRAFT';
+  const isPending = game.status === 'PENDING';
+  const isPublished = game.status === 'PUBLISHED';
+  const isRejected = game.status === 'REJECTED';
+  const isEditable = isDraft || isRejected;
+
+  // Pre-Flight Certification Criteria (Must all pass to submit)
+  const hasMetadata = Boolean(title?.trim().length >= 2 && genre?.trim().length > 0 && description?.trim().length >= 15);
+  const hasPricing = Boolean(editions && editions.length > 0);
+  const hasMedia = Boolean(coverImageUrl?.trim().length > 0 && screenshots && screenshots.length > 0);
+  const hasRequirements = Boolean(minOs?.trim() && minCpu?.trim() && minGpu?.trim() && minMem?.trim() && minStorage?.trim());
+  const hasVersion = Boolean(game.versions && game.versions.length > 0);
+  const allCriteriaMet = hasMetadata && hasPricing && hasMedia && hasRequirements && hasVersion;
 
   return (
     <div className="min-h-full bg-black text-[#C9D1D9] font-mono pb-24">
@@ -421,6 +433,7 @@ export default function GameConfig() {
                 <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${
                   game.status === 'PUBLISHED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
                   game.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 animate-pulse' :
+                  game.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
                   'bg-neutral-900 text-neutral-400 border-neutral-700'
                 }`}>
                   {game.status}
@@ -444,14 +457,19 @@ export default function GameConfig() {
               Store Preview
             </button>
 
-            {isDraft && (
+            {isEditable && (
               <button
                 onClick={handleSubmitReview}
-                disabled={saving}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] disabled:opacity-50"
+                disabled={saving || !allCriteriaMet}
+                title={!allCriteriaMet ? "Complete all 5 pre-flight checklist items to submit" : "Submit for storefront review"}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md ${
+                  allCriteriaMet
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
+                    : 'bg-neutral-800 text-neutral-500 cursor-not-allowed border border-neutral-700'
+                } disabled:opacity-50`}
               >
                 <Send className="w-3.5 h-3.5" />
-                Submit for Review
+                {isRejected ? "Re-submit for Review" : "Submit for Review"}
               </button>
             )}
           </div>
@@ -459,14 +477,88 @@ export default function GameConfig() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
         
-        {!isDraft && (
-          <div className="bg-yellow-950/20 border border-yellow-700/50 rounded-xl p-4 flex items-center gap-3 text-yellow-200">
-            <AlertTriangle className="w-5 h-5 shrink-0 text-yellow-400" />
+        {/* Status Notification Callouts */}
+        {isPending && (
+          <div className="bg-yellow-950/25 border border-yellow-500/40 rounded-xl p-5 flex items-start gap-4 text-yellow-200 shadow-[0_0_20px_rgba(234,179,8,0.1)]">
+            <AlertTriangle className="w-6 h-6 shrink-0 text-yellow-400 mt-0.5 animate-pulse" />
+            <div>
+              <h3 className="text-sm font-bold text-yellow-300 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping" />
+                Under Administrative Certification Review
+              </h3>
+              <p className="text-xs text-yellow-200/80 mt-1 leading-relaxed">
+                This title is currently being reviewed by the GameStation Certification Board. All configurations, pricing tiers, media assets, and binaries are <strong>frozen</strong> to preserve version integrity. You will receive an approval decision shortly.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {isRejected && (
+          <div className="bg-red-950/30 border border-red-500/50 rounded-xl p-5 flex items-start gap-4 text-red-200 shadow-[0_0_20px_rgba(239,68,68,0.15)]">
+            <AlertTriangle className="w-6 h-6 shrink-0 text-red-400 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-red-300 uppercase tracking-wider">
+                Revision Requested / Submission Rejected
+              </h3>
+              <p className="text-xs text-red-200/90 mt-1 font-mono bg-red-950/60 p-3 rounded-lg border border-red-900/60 leading-relaxed">
+                <strong>Certification Feedback:</strong> {game.rejectionReason || "Please review metadata and ensure game binaries execute cleanly according to platform guidelines."}
+              </p>
+              <p className="text-[11px] text-neutral-400 mt-2">
+                You can edit any fields below to address this feedback. Once all 5 criteria are verified, click <strong>Re-submit for Review</strong>.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {isPublished && (
+          <div className="bg-emerald-950/20 border border-emerald-500/40 rounded-xl p-4 flex items-center gap-3 text-emerald-200">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
             <p className="text-xs leading-relaxed">
-              <strong>STATUS LOCK:</strong> This title is currently <strong>{game.status}</strong>. Modifications are read-restricted to preserve version integrity during review or live retail distribution.
+              <strong>LIVE ON STOREFRONT:</strong> This title is published and actively available to players. Live edits to binaries are locked to protect consumer libraries.
             </p>
+          </div>
+        )}
+
+        {/* Pre-Flight Certification Checklist */}
+        {isEditable && (
+          <div className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" /> Pre-Flight Certification Checklist
+                </h3>
+                <p className="text-[11px] text-neutral-500 mt-0.5">All 5 compliance requirements must be satisfied before submission</p>
+              </div>
+              <div className="text-xs font-bold font-mono">
+                <span className={allCriteriaMet ? "text-emerald-400" : "text-yellow-400"}>
+                  {[hasMetadata, hasPricing, hasMedia, hasRequirements, hasVersion].filter(Boolean).length} / 5 Criteria Passed
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className={`p-3 rounded-lg border text-xs font-bold flex items-center gap-2 ${hasMetadata ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300' : 'bg-neutral-900/40 border-neutral-800 text-neutral-500'}`}>
+                <CheckCircle2 className={`w-4 h-4 shrink-0 ${hasMetadata ? 'text-emerald-400' : 'text-neutral-600'}`} />
+                <span>1. Core Metadata</span>
+              </div>
+              <div className={`p-3 rounded-lg border text-xs font-bold flex items-center gap-2 ${hasPricing ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300' : 'bg-neutral-900/40 border-neutral-800 text-neutral-500'}`}>
+                <CheckCircle2 className={`w-4 h-4 shrink-0 ${hasPricing ? 'text-emerald-400' : 'text-neutral-600'}`} />
+                <span>2. Pricing Tier</span>
+              </div>
+              <div className={`p-3 rounded-lg border text-xs font-bold flex items-center gap-2 ${hasMedia ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300' : 'bg-neutral-900/40 border-neutral-800 text-neutral-500'}`}>
+                <CheckCircle2 className={`w-4 h-4 shrink-0 ${hasMedia ? 'text-emerald-400' : 'text-neutral-600'}`} />
+                <span>3. Cover & Screens</span>
+              </div>
+              <div className={`p-3 rounded-lg border text-xs font-bold flex items-center gap-2 ${hasRequirements ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300' : 'bg-neutral-900/40 border-neutral-800 text-neutral-500'}`}>
+                <CheckCircle2 className={`w-4 h-4 shrink-0 ${hasRequirements ? 'text-emerald-400' : 'text-neutral-600'}`} />
+                <span>4. Hardware Specs</span>
+              </div>
+              <div className={`p-3 rounded-lg border text-xs font-bold flex items-center gap-2 ${hasVersion ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300' : 'bg-neutral-900/40 border-neutral-800 text-neutral-500'}`}>
+                <CheckCircle2 className={`w-4 h-4 shrink-0 ${hasVersion ? 'text-emerald-400' : 'text-neutral-600'}`} />
+                <span>5. Deployed Build</span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -510,7 +602,7 @@ export default function GameConfig() {
                 <p className="text-xs text-neutral-500 mt-1">Manage game metadata and storefront listing details</p>
               </div>
 
-              {isDraft && (
+              {isEditable && (
                 <button
                   onClick={handleSaveDetails}
                   disabled={saving}
@@ -530,7 +622,7 @@ export default function GameConfig() {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  disabled={!isDraft}
+                  disabled={!isEditable}
                   className="w-full bg-[#050505] border border-[#30363D] focus:border-emerald-500 rounded-lg px-4 py-2.5 text-sm text-white outline-none disabled:opacity-50"
                 />
               </div>
@@ -543,7 +635,7 @@ export default function GameConfig() {
                   type="text"
                   value={genre}
                   onChange={(e) => setGenre(e.target.value)}
-                  disabled={!isDraft}
+                  disabled={!isEditable}
                   className="w-full bg-[#050505] border border-[#30363D] focus:border-emerald-500 rounded-lg px-4 py-2.5 text-sm text-white outline-none disabled:opacity-50"
                 />
               </div>
@@ -557,7 +649,7 @@ export default function GameConfig() {
                 type="text"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                disabled={!isDraft}
+                disabled={!isEditable}
                 placeholder="Cyberpunk, Open World, RPG, Rich Story"
                 className="w-full bg-[#050505] border border-[#30363D] focus:border-emerald-500 rounded-lg px-4 py-2.5 text-sm text-white outline-none disabled:opacity-50"
               />
@@ -571,7 +663,7 @@ export default function GameConfig() {
                 rows={6}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                disabled={!isDraft}
+                disabled={!isEditable}
                 className="w-full bg-[#050505] border border-[#30363D] focus:border-emerald-500 rounded-lg p-4 text-xs text-white outline-none disabled:opacity-50 leading-relaxed resize-none"
               />
             </div>
@@ -596,7 +688,7 @@ export default function GameConfig() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-bold text-white">{ed.editionName}</span>
-                        {editions.length > 1 && isDraft && (
+                        {editions.length > 1 && isEditable && (
                           <button
                             onClick={() => handleDeleteEdition(ed.id)}
                             className="text-neutral-500 hover:text-red-400 p-1"
@@ -638,7 +730,7 @@ export default function GameConfig() {
                       )}
                     </div>
 
-                    {isDraft && (
+                    {isEditable && (
                       <div className="pt-4 border-t border-[#1C222C] mt-4 flex items-center gap-2">
                         <input
                           type="number"
@@ -663,7 +755,7 @@ export default function GameConfig() {
             </div>
 
             {/* Add New Edition */}
-            {isDraft && (
+            {isEditable && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Form to add an Edition */}
                 <form onSubmit={handleAddEdition} className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-6 space-y-4">
@@ -781,7 +873,7 @@ export default function GameConfig() {
                 <p className="text-xs text-neutral-500 mt-1">High-resolution cover artwork, hero banners, screenshots, and trailers</p>
               </div>
 
-              {isDraft && (
+              {isEditable && (
                 <button
                   onClick={handleSaveMedia}
                   disabled={saving}
@@ -802,7 +894,7 @@ export default function GameConfig() {
                   type="url"
                   value={coverImageUrl}
                   onChange={(e) => setCoverImageUrl(e.target.value)}
-                  disabled={!isDraft}
+                  disabled={!isEditable}
                   placeholder="https://images.unsplash.com/..."
                   className="w-full bg-[#050505] border border-[#30363D] focus:border-pink-500 rounded-lg px-4 py-2.5 text-xs text-white outline-none disabled:opacity-50 mb-3"
                 />
@@ -822,7 +914,7 @@ export default function GameConfig() {
                   type="url"
                   value={bannerImageUrl}
                   onChange={(e) => setBannerImageUrl(e.target.value)}
-                  disabled={!isDraft}
+                  disabled={!isEditable}
                   placeholder="https://images.unsplash.com/..."
                   className="w-full bg-[#050505] border border-[#30363D] focus:border-pink-500 rounded-lg px-4 py-2.5 text-xs text-white outline-none disabled:opacity-50 mb-3"
                 />
@@ -843,7 +935,7 @@ export default function GameConfig() {
                 type="text"
                 value={trailerUrl}
                 onChange={(e) => setTrailerUrl(e.target.value)}
-                disabled={!isDraft}
+                disabled={!isEditable}
                 placeholder="https://www.youtube.com/watch?v=..."
                 className="w-full bg-[#050505] border border-[#30363D] focus:border-pink-500 rounded-lg px-4 py-2.5 text-xs text-white outline-none disabled:opacity-50"
               />
@@ -855,7 +947,7 @@ export default function GameConfig() {
                 Screenshots Gallery ({screenshots.length} attached)
               </label>
 
-              {isDraft && (
+              {isEditable && (
                 <div className="flex gap-2 mb-4">
                   <input
                     type="url"
@@ -878,7 +970,7 @@ export default function GameConfig() {
                 {screenshots.map((s, idx) => (
                   <div key={idx} className="relative rounded-lg overflow-hidden border border-[#30363D] bg-neutral-950 group h-28">
                     <img src={s} alt={`Screenshot ${idx + 1}`} className="w-full h-full object-cover" />
-                    {isDraft && (
+                    {isEditable && (
                       <button
                         onClick={() => handleRemoveScreenshot(idx)}
                         className="absolute top-1.5 right-1.5 p-1 rounded bg-black/80 text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -905,7 +997,7 @@ export default function GameConfig() {
                 <p className="text-xs text-neutral-500 mt-1">Minimum bare-metal and optimal yield specifications for players</p>
               </div>
 
-              {isDraft && (
+              {isEditable && (
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -940,27 +1032,27 @@ export default function GameConfig() {
                 </h3>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Operating System</label>
-                  <input type="text" value={minOs} onChange={e => setMinOs(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={minOs} onChange={e => setMinOs(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Processor (CPU)</label>
-                  <input type="text" value={minCpu} onChange={e => setMinCpu(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={minCpu} onChange={e => setMinCpu(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Graphics (GPU)</label>
-                  <input type="text" value={minGpu} onChange={e => setMinGpu(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={minGpu} onChange={e => setMinGpu(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Memory (RAM)</label>
-                  <input type="text" value={minMem} onChange={e => setMinMem(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={minMem} onChange={e => setMinMem(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Storage</label>
-                  <input type="text" value={minStorage} onChange={e => setMinStorage(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={minStorage} onChange={e => setMinStorage(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Network</label>
-                  <input type="text" value={minNetwork} onChange={e => setMinNetwork(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={minNetwork} onChange={e => setMinNetwork(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
               </div>
 
@@ -971,27 +1063,27 @@ export default function GameConfig() {
                 </h3>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Operating System</label>
-                  <input type="text" value={optOs} onChange={e => setOptOs(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={optOs} onChange={e => setOptOs(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Processor (CPU)</label>
-                  <input type="text" value={optCpu} onChange={e => setOptCpu(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={optCpu} onChange={e => setOptCpu(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Graphics (GPU)</label>
-                  <input type="text" value={optGpu} onChange={e => setOptGpu(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={optGpu} onChange={e => setOptGpu(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Memory (RAM)</label>
-                  <input type="text" value={optMem} onChange={e => setOptMem(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={optMem} onChange={e => setOptMem(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Storage</label>
-                  <input type="text" value={optStorage} onChange={e => setOptStorage(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={optStorage} onChange={e => setOptStorage(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
                 <div>
                   <label className="block text-[11px] uppercase text-neutral-500 mb-1">Network</label>
-                  <input type="text" value={optNetwork} onChange={e => setOptNetwork(e.target.value)} disabled={!isDraft} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
+                  <input type="text" value={optNetwork} onChange={e => setOptNetwork(e.target.value)} disabled={!isEditable} className="w-full bg-[#0D1117] border border-[#30363D] px-3 py-2 text-xs text-white rounded outline-none" />
                 </div>
               </div>
             </div>
@@ -1009,7 +1101,7 @@ export default function GameConfig() {
                 <p className="text-xs text-neutral-500 mt-1">Target expected hours for main story, side quests, and 100% completionist playthroughs</p>
               </div>
 
-              {isDraft && (
+              {isEditable && (
                 <button
                   onClick={handleSaveTelemetry}
                   disabled={saving}
@@ -1031,7 +1123,7 @@ export default function GameConfig() {
                   step="0.5"
                   value={mainStoryHours}
                   onChange={(e) => setMainStoryHours(e.target.value)}
-                  disabled={!isDraft}
+                  disabled={!isEditable}
                   className="w-full bg-[#0D1117] border border-[#30363D] focus:border-purple-500 rounded-lg px-4 py-2.5 text-lg font-black text-white outline-none"
                 />
                 <p className="text-[10px] text-neutral-500 mt-2">Core critical campaign progression only.</p>
@@ -1047,7 +1139,7 @@ export default function GameConfig() {
                   step="0.5"
                   value={mainExtrasHours}
                   onChange={(e) => setMainExtrasHours(e.target.value)}
-                  disabled={!isDraft}
+                  disabled={!isEditable}
                   className="w-full bg-[#0D1117] border border-[#30363D] focus:border-purple-500 rounded-lg px-4 py-2.5 text-lg font-black text-white outline-none"
                 />
                 <p className="text-[10px] text-neutral-500 mt-2">Campaign plus side quests and exploration.</p>
@@ -1063,7 +1155,7 @@ export default function GameConfig() {
                   step="0.5"
                   value={completionistHours}
                   onChange={(e) => setCompletionistHours(e.target.value)}
-                  disabled={!isDraft}
+                  disabled={!isEditable}
                   className="w-full bg-[#0D1117] border border-[#30363D] focus:border-purple-500 rounded-lg px-4 py-2.5 text-lg font-black text-white outline-none"
                 />
                 <p className="text-[10px] text-neutral-500 mt-2">All achievements, collectibles, and secrets.</p>
@@ -1117,7 +1209,7 @@ export default function GameConfig() {
             </div>
 
             {/* Deploy New Version Form */}
-            {isDraft && (
+            {isEditable && (
               <form onSubmit={handleAddVersion} className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-6 sm:p-8 space-y-4">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <Plus className="w-4 h-4 text-emerald-400" /> Deploy New Game Client Version

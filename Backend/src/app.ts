@@ -25,6 +25,9 @@ app.use("/api/store", storeRoutes);
 import adminRoutes from "./Routes/admin.routes.js";
 app.use("/api/admin", adminRoutes);
 
+import governanceRoutes from "./Routes/governance.routes.js";
+app.use("/api/governance", governanceRoutes);
+
 import paymentRoutes from "./Routes/payment.routes.js";
 app.use("/api/payments", paymentRoutes);
 

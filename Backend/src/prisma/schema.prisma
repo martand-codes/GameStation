@@ -39,6 +39,12 @@ model User {
   payments      Payment[]
   library       UserLibrary[]
 
+  // Admin & Staff Governance
+  reviewedGames         Game[]          @relation("AdminReviewedGames")
+  createdInvites        StaffInvite[]   @relation("StaffInvitesCreated")
+  recoveryPhraseHash    String?
+  securityQuestions     String?
+
   // For Wallet
   walletBalance         Decimal                         @default(0.00)
   walletTransactions    Wallet[]
@@ -84,6 +90,12 @@ model Game {
   // Phase 3 Payment Integration
   payments             Payment[]
   library              UserLibrary[]
+
+  // Moderation & Review Audit
+  rejectionReason      String?
+  reviewedByAdminId    String?
+  reviewedByAdmin      User?             @relation("AdminReviewedGames", fields: [reviewedByAdminId], references: [id])
+  reviewedAt           DateTime?
 
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt 
@@ -254,5 +266,31 @@ model Wallet {
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt 
+}
+
+// Staff Onboarding & Admin Invites
+model StaffInvite {
+  id          String    @id @default(uuid())
+  token       String    @unique
+  role        Role      @default(ADMIN)
+  createdById String
+  createdBy   User      @relation("StaffInvitesCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  isUsed      Boolean   @default(false)
+  usedByEmail String?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+}
+
+// Governance Flight Recorder
+model GovernanceAuditLog {
+  id          String    @id @default(uuid())
+  action      String    // e.g. "ROOT_CLAIMED", "STAFF_INVITED", "STAFF_ACCEPTED", "STAFF_REVOKED", "BREAK_GLASS_TRIGGERED"
+  actorId     String?
+  actorName   String?
+  targetId    String?
+  targetName  String?
+  details     String?
+  ipAddress   String?
+  createdAt   DateTime  @default(now())
 }
 

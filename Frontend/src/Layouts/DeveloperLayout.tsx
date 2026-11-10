@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { Gamepad2, LayoutDashboard, Settings, BarChart3, DollarSign, LogOut, UserCircle } from 'lucide-react';
+import { Gamepad2, LayoutDashboard, Settings, BarChart3, DollarSign, LogOut, UserCircle, Crown } from 'lucide-react';
 
 export default function DeveloperLayout() {
   const { user, logout } = useAuth();
@@ -25,6 +25,13 @@ export default function DeveloperLayout() {
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {user?.role === 'OWNER' && (
+            <div className="pb-2 mb-2 border-b border-neutral-800">
+              <NavLink to="/platform/governance" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-lg font-bold transition-all ${isActive ? 'bg-amber-950/40 text-amber-300 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'text-amber-400/80 hover:bg-neutral-900 hover:text-amber-300 border border-amber-500/20'}`}>
+                <Crown className="w-5 h-5 text-amber-400" /> Governance Cockpit
+              </NavLink>
+            </div>
+          )}
           <NavLink to="/developer/dashboard" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-lg font-bold transition-colors ${isActive ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-900/50' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white border border-transparent'}`}>
             <LayoutDashboard className="w-5 h-5" /> Dashboard
           </NavLink>

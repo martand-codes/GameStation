@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import * as gameService from "../Services/game.service.js";
+import { getSystemControls } from "../Services/governance.service.js";
 import { 
   createGameSchema, 
   updateGameSchema, 
@@ -18,6 +19,14 @@ interface AuthRequest extends Request {
 
 export const createGame = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const controls = getSystemControls();
+    if (controls.submissionsFrozen) {
+      res.status(403).json({
+        message: "Developer game submissions are temporarily locked by sovereign platform governance.",
+      });
+      return;
+    }
+
     const validatedData = createGameSchema.parse(req.body);
     const game = await gameService.createGame(req.user!.userId, validatedData);
     res.status(201).json(game);
@@ -65,6 +74,14 @@ export const deleteGame = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const submitGame = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const controls = getSystemControls();
+    if (controls.submissionsFrozen) {
+      res.status(403).json({
+        message: "Developer game submissions are temporarily locked by sovereign platform governance.",
+      });
+      return;
+    }
+
     const game = await gameService.submitGame(req.params.id as string, req.user!.userId);
     res.status(200).json({ message: "Game submitted for review", game });
   } catch (error) {

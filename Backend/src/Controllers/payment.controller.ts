@@ -2,6 +2,7 @@ import type { Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { stripe } from "../Services/stripe.service.js";
 import type { AuthRequest } from "../Middlewares/bouncer.middleware.js";
+import { getSystemControls } from "../Services/governance.service.js";
 
 const prisma = new PrismaClient();
 
@@ -10,6 +11,15 @@ const prisma = new PrismaClient();
  */
 export const createCheckoutSession = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const controls = getSystemControls();
+    if (controls.marketplaceFrozen) {
+      res.status(403).json({
+        success: false,
+        message: "Marketplace checkouts are temporarily frozen by sovereign platform governance.",
+      });
+      return;
+    }
+
     const userId = req.user?.userId;
     if (!userId) {
       res.status(401).json({ success: false, message: "Unauthorized access" });
@@ -217,6 +227,15 @@ export const createCheckoutSession = async (req: AuthRequest, res: Response): Pr
  */
 export const createCartCheckoutSession = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const controls = getSystemControls();
+    if (controls.marketplaceFrozen) {
+      res.status(403).json({
+        success: false,
+        message: "Marketplace checkouts are temporarily frozen by sovereign platform governance.",
+      });
+      return;
+    }
+
     const userId = req.user?.userId;
     if (!userId) {
       res.status(401).json({ success: false, message: "Unauthorized access" });
