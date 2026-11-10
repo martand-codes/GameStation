@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertOctagon, Flame, ShieldAlert, Zap, Lock, RefreshCw, Radio, Megaphone, CheckCircle2, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { useToast } from '../../../Context/ToastContext';
 import {
   getSystemKillswitchesAPI,
   toggleSystemKillswitchAPI,
@@ -10,6 +11,7 @@ import {
 } from '../../../Services/Governance.service';
 
 export default function EmergencyConsole() {
+  const toast = useToast();
   const [killswitches, setKillswitches] = useState<{
     marketplaceFrozen: boolean;
     submissionsFrozen: boolean;
@@ -75,8 +77,9 @@ export default function EmergencyConsole() {
         state: !currentState,
       });
       setKillswitches(res);
+      toast.success(`Killswitch "${switchName}" toggled to [${!currentState ? 'ACTIVE' : 'INACTIVE'}].`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to toggle killswitch');
+      toast.error(err.response?.data?.message || 'Failed to toggle killswitch');
     }
   };
 
@@ -92,9 +95,9 @@ export default function EmergencyConsole() {
     try {
       setPurgeLoading(true);
       const res = await purgeAllSessionsAPI();
-      alert(`SUCCESS: ${res.message}`);
+      toast.success(`SESSION PURGE EXECUTED: ${res.message}`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to purge sessions');
+      toast.error(err.response?.data?.message || 'Failed to purge sessions');
     } finally {
       setPurgeLoading(false);
     }
@@ -102,7 +105,7 @@ export default function EmergencyConsole() {
 
   const handleDispatchBroadcast = async () => {
     if (broadcastActive && !broadcastMessage.trim()) {
-      alert('Please input a broadcast announcement before arming platform transmission.');
+      toast.warning('Please input a broadcast announcement before arming platform transmission.');
       return;
     }
 
@@ -114,9 +117,10 @@ export default function EmergencyConsole() {
         severity: broadcastSeverity,
       });
       setBroadcastSaved(true);
+      toast.success('Platform broadcast dispatched successfully');
       setTimeout(() => setBroadcastSaved(false), 3000);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to dispatch platform broadcast');
+      toast.error(err.response?.data?.message || 'Failed to dispatch platform broadcast');
     } finally {
       setBroadcasting(false);
     }

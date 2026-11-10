@@ -3,10 +3,12 @@ import { useAuth } from '../Context/AuthContext';
 import { getGamesAPI, deleteGameAPI } from '../Services/Game.service';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Gamepad2, Settings, ExternalLink, Trash2, Search, Code, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { useToast } from '../Context/ToastContext';
 
 export default function DeveloperPortal() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [games, setGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,8 +45,9 @@ export default function DeveloperPortal() {
       setDeletingId(gameId);
       await deleteGameAPI(gameId);
       setGames(prev => prev.filter(g => g.id !== gameId));
+      toast.success(`Title "${title}" permanently deleted.`);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to delete game");
+      toast.error(err.response?.data?.message || "Failed to delete game");
     } finally {
       setDeletingId(null);
     }

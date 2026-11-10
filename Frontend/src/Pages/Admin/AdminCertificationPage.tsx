@@ -54,6 +54,7 @@ import { useAuth } from '../../Context/AuthContext';
 export default function AdminCertificationPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isOwner = user?.role === 'OWNER';
 
   const [games, setGames] = useState<any[]>([]);
   const [staffRoster, setStaffRoster] = useState<any[]>([]);
@@ -61,6 +62,12 @@ export default function AdminCertificationPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [assignmentFilter, setAssignmentFilter] = useState<'ALL' | 'MINE' | 'UNASSIGNED' | 'OTHERS'>('ALL');
+
+  useEffect(() => {
+    if (user && user.role !== 'OWNER') {
+      setAssignmentFilter('MINE');
+    }
+  }, [user]);
 
   // Delegation Modal
   const [delegateModalGame, setDelegateModalGame] = useState<any | null>(null);
@@ -488,17 +495,19 @@ export default function AdminCertificationPage() {
       {/* ── Assignment Triage Filter Tabs ─────────────────────────────────── */}
       <div className="p-3.5 rounded-xl bg-[#090F24] border border-blue-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-          <button
-            onClick={() => setAssignmentFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              assignmentFilter === 'ALL'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                : 'text-blue-300/60 hover:text-white hover:bg-blue-950/40'
-            }`}
-          >
-            <span>All Queue</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40">{games.length}</span>
-          </button>
+          {isOwner && (
+            <button
+              onClick={() => setAssignmentFilter('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                assignmentFilter === 'ALL'
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  : 'text-blue-300/60 hover:text-white hover:bg-blue-950/40'
+              }`}
+            >
+              <span>All Fleet Queue</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40">{games.length}</span>
+            </button>
+          )}
 
           <button
             onClick={() => setAssignmentFilter('MINE')}
@@ -524,17 +533,19 @@ export default function AdminCertificationPage() {
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40">{unassignedCount}</span>
           </button>
 
-          <button
-            onClick={() => setAssignmentFilter('OTHERS')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              assignmentFilter === 'OTHERS'
-                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
-                : 'text-amber-400/70 hover:text-white hover:bg-amber-950/30'
-            }`}
-          >
-            <span>Held by Other Staff</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40">{othersCount}</span>
-          </button>
+          {isOwner && (
+            <button
+              onClick={() => setAssignmentFilter('OTHERS')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                assignmentFilter === 'OTHERS'
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
+                  : 'text-amber-400/70 hover:text-white hover:bg-amber-950/30'
+              }`}
+            >
+              <span>Held by Other Staff</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/40">{othersCount}</span>
+            </button>
+          )}
         </div>
 
         <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2 shrink-0">
@@ -731,18 +742,20 @@ export default function AdminCertificationPage() {
                         </button>
                       )}
 
-                      {/* Delegate / Reassign Button */}
-                      <button
-                        onClick={() => {
-                          setDelegateModalGame(game);
-                          setSelectedDelegateAdminId(game.assignedAdminId || '');
-                        }}
-                        className="flex items-center gap-1.5 py-2 px-3 rounded-xl text-xs font-mono font-medium text-blue-300 hover:text-white bg-blue-950/40 hover:bg-blue-900/50 border border-blue-800/40 transition-all cursor-pointer"
-                        title="Delegate ticket to another staff member"
-                      >
-                        <ArrowRightLeft className="w-3.5 h-3.5" />
-                        <span>Delegate</span>
-                      </button>
+                      {/* Delegate / Reassign Button - Only allowed for ticket claimant or Sovereign Owner */}
+                      {(isClaimedByMe || isUnassigned || isOwner) && (
+                        <button
+                          onClick={() => {
+                            setDelegateModalGame(game);
+                            setSelectedDelegateAdminId(game.assignedAdminId || '');
+                          }}
+                          className="flex items-center gap-1.5 py-2 px-3 rounded-xl text-xs font-mono font-medium text-blue-300 hover:text-white bg-blue-950/40 hover:bg-blue-900/50 border border-blue-800/40 transition-all cursor-pointer"
+                          title="Delegate ticket to another staff member"
+                        >
+                          <ArrowRightLeft className="w-3.5 h-3.5" />
+                          <span>Delegate</span>
+                        </button>
+                      )}
 
                       {/* Inspect Dossier (Reviewer Theater) */}
                       <button

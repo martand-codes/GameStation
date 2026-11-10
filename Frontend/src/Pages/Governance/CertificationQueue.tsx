@@ -29,9 +29,11 @@ import {
   approveGameCertificationAPI,
   rejectGameCertificationAPI,
 } from '../../Services/Governance.service';
+import { useToast } from '../../Context/ToastContext';
 
 export default function CertificationQueue() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [games, setGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -77,10 +79,11 @@ export default function CertificationQueue() {
     try {
       setActionLoading(gameId);
       await approveGameCertificationAPI(gameId);
+      toast.success('Title officially certified and published to live storefront');
       setInspectGame(null);
       await fetchQueue();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to certify game');
+      toast.error(err.response?.data?.message || 'Failed to certify game');
     } finally {
       setActionLoading(null);
     }
@@ -93,12 +96,13 @@ export default function CertificationQueue() {
     try {
       setActionLoading(rejectingGame.id);
       await rejectGameCertificationAPI(rejectingGame.id, rejectionReason);
+      toast.warning(`Certification rejected for "${rejectingGame.title}"`);
       setRejectingGame(null);
       setRejectionReason('');
       setInspectGame(null);
       await fetchQueue();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to reject submission');
+      toast.error(err.response?.data?.message || 'Failed to reject submission');
     } finally {
       setActionLoading(null);
     }

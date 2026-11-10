@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../Context/AuthContext';
+import { useToast } from '../Context/ToastContext';
 import {
   Flame,
   LayoutDashboard,
@@ -28,6 +29,7 @@ import SovereignGreeterGate from '../Pages/Governance/components/SovereignGreete
 
 export default function GovernanceLayout() {
   const { user, logout } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -70,9 +72,10 @@ export default function GovernanceLayout() {
   const handleCreateInvite = async (expiryHours: number) => {
     try {
       const res = await createStaffInviteAPI({ role: 'ADMIN', expiresInHours: Number(expiryHours) });
+      toast.success('Staff invitation token generated successfully');
       return `${window.location.origin}/staff/accept-invitation?token=${res.invite.token}`;
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to issue invite');
+      toast.error(e.response?.data?.message || 'Failed to issue invite');
     }
   };
 

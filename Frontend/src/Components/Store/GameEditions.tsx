@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Check, X, Heart, Zap, CheckCircle2, Play } from
 import AiEditionRecommender from './AiEditionRecommender';
 import { useCart } from '../../Context/CartContext';
 import { useWishlist } from '../../Context/WishlistContext';
+import { useToast } from '../../Context/ToastContext';
 import { api } from '../../Api/Axios';
 
 interface Edition {
@@ -21,6 +22,7 @@ export default function GameEditions({ editions, title, gameId, coverImage }: { 
   const [buyError, setBuyError] = useState<string | null>(null);
   const { addToCart, items, removeFromCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const toast = useToast();
 
   // Check game ownership on mount
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function GameEditions({ editions, title, gameId, coverImage }: { 
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" /> IN LIBRARY
                       </span>
                       <button 
-                        onClick={() => alert(`Launching ${title} (${edition.editionName})...`)}
+                        onClick={() => toast.info(`Launching ${title} (${edition.editionName})...`)}
                         className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-bold rounded-sm flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all"
                       >
                         <Play className="w-4 h-4 fill-white" /> Play

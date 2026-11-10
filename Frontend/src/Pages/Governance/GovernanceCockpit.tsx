@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../Context/AuthContext';
+import { useToast } from '../../Context/ToastContext';
 import {
   getEmpireMetricsAPI,
   getEmpireChartMetricsAPI,
@@ -36,6 +37,7 @@ import IssueInviteModal from './components/IssueInviteModal';
 
 export default function GovernanceCockpit() {
   const { user } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
 
   const [metrics, setMetrics] = useState<any>(null);
@@ -73,9 +75,10 @@ export default function GovernanceCockpit() {
     try {
       const res = await createStaffInviteAPI({ role: 'ADMIN', expiresInHours: Number(expiryHours) });
       fetchData();
+      toast.success('Staff invitation token generated');
       return `${window.location.origin}/staff/accept-invitation?token=${res.invite.token}`;
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to issue invite');
+      toast.error(e.response?.data?.message || 'Failed to issue invite');
     }
   };
 
@@ -84,8 +87,9 @@ export default function GovernanceCockpit() {
     try {
       await revokeStaffInviteAPI(id);
       fetchData();
+      toast.success('Invitation token permanently invalidated');
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to revoke token');
+      toast.error(e.response?.data?.message || 'Failed to revoke token');
     }
   };
 
@@ -94,8 +98,9 @@ export default function GovernanceCockpit() {
     try {
       await revokeStaffMemberAPI(id);
       fetchData();
+      toast.success(`Revoked reviewer clearance for @${username}`);
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Failed to revoke staff clearance');
+      toast.error(e.response?.data?.message || 'Failed to revoke staff clearance');
     }
   };
 

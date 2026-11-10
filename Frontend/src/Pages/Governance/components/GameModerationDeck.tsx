@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, EyeOff, CheckCircle, ShieldAlert, Layers } from 'lucide-react';
+import { Search, EyeOff, CheckCircle, ShieldAlert, Layers, FileText } from 'lucide-react';
 import { getAllPlatformGamesAPI, moderateGameStatusAPI } from '../../../Services/Governance.service';
+import { useToast } from '../../../Context/ToastContext';
+import { QADossierModal } from '../../../Components/Admin/QADossierModal';
 
 export default function GameModerationDeck() {
+  const toast = useToast();
   const [games, setGames] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedDossierGame, setSelectedDossierGame] = useState<any | null>(null);
 
   useEffect(() => {
     fetchGames();
@@ -35,9 +39,10 @@ export default function GameModerationDeck() {
 
     try {
       await moderateGameStatusAPI(gameId, { status, reason: reason.trim() || undefined });
+      toast.success(`Title "${title}" status set to [${status}]`);
       await fetchGames(search);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to moderate game');
+      toast.error(err.response?.data?.message || 'Failed to moderate game');
     }
   };
 
@@ -146,6 +151,16 @@ export default function GameModerationDeck() {
                     {game._count?.payments || 0} purchases
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
+                    {/* QA Certification Dossier */}
+                    <button
+                      onClick={() => setSelectedDossierGame(game)}
+                      className="py-1 px-3 rounded-lg text-[10px] font-mono font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-all cursor-pointer inline-flex items-center gap-1.5"
+                      title="Inspect QA Certification Dossier & Telemetry"
+                    >
+                      <FileText className="w-3 h-3 text-cyan-400" />
+                      QA Dossier
+                    </button>
+
                     {game.status === 'PUBLISHED' ? (
                       <button
                         onClick={() => handleModerate(game.id, game.title, 'HIDDEN')}
@@ -182,6 +197,12 @@ export default function GameModerationDeck() {
           </tbody>
         </table>
       </div>
+
+      {/* QA Certification Dossier Modal */}
+      <QADossierModal
+        game={selectedDossierGame}
+        onClose={() => setSelectedDossierGame(null)}
+      />
     </motion.section>
   );
 }

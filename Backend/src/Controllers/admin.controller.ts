@@ -2,9 +2,10 @@ import type { Response, NextFunction } from "express";
 import type { AuthRequest } from "../Middlewares/bouncer.middleware.js";
 import * as adminService from "../Services/admin.service.js";
 
-export const getPendingGames = async (_req: AuthRequest, res: Response, next: NextFunction) => {
+export const getPendingGames = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const games = await adminService.getPendingGames();
+    const requesterId = req.user?.userId;
+    const games = await adminService.getPendingGames(requesterId);
     res.status(200).json(games);
   } catch (error) {
     next(error);
@@ -34,9 +35,10 @@ export const rejectGame = async (req: AuthRequest, res: Response, next: NextFunc
   }
 };
 
-export const getDashboardMetrics = async (_req: AuthRequest, res: Response, next: NextFunction) => {
+export const getDashboardMetrics = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const data = await adminService.getAdminDashboardMetrics();
+    const requesterId = req.user?.userId;
+    const data = await adminService.getAdminDashboardMetrics(requesterId);
     res.status(200).json(data);
   } catch (error) {
     next(error);

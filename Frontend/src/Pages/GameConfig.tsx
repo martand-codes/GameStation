@@ -32,10 +32,12 @@ import {
   Tag,
   Percent
 } from 'lucide-react';
+import { useToast } from '../Context/ToastContext';
 
 export default function GameConfig() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
   const [game, setGame] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'details' | 'pricing' | 'media' | 'requirements' | 'telemetry' | 'versions'>('details');
@@ -150,7 +152,7 @@ export default function GameConfig() {
       }
 
     } catch (err) {
-      alert("Failed to load title configuration.");
+      toast.error("Failed to load title configuration.");
       navigate('/developer/portal');
     } finally {
       setLoading(false);
@@ -158,8 +160,7 @@ export default function GameConfig() {
   };
 
   const notifySuccess = (msg: string) => {
-    setSaveSuccessMsg(msg);
-    setTimeout(() => setSaveSuccessMsg(''), 3000);
+    toast.success(msg);
   };
 
   // Handlers
@@ -171,7 +172,7 @@ export default function GameConfig() {
       notifySuccess("Core details updated successfully!");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to update details.");
+      toast.error(err.response?.data?.message || "Failed to update details.");
     } finally {
       setSaving(false);
     }
@@ -190,7 +191,7 @@ export default function GameConfig() {
       notifySuccess("Edition pricing updated!");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to update edition pricing.");
+      toast.error(err.response?.data?.message || "Failed to update edition pricing.");
     } finally {
       setSaving(false);
     }
@@ -198,7 +199,10 @@ export default function GameConfig() {
 
   const handleAddEdition = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEditionName.trim()) return alert("Edition name is required");
+    if (!newEditionName.trim()) {
+      toast.warning("Edition name is required");
+      return;
+    }
     try {
       setSaving(true);
       const featuresArr = newEditionFeatures.split(',').map(f => f.trim()).filter(f => f.length > 0);
@@ -214,7 +218,7 @@ export default function GameConfig() {
       setNewEditionFeatures("");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to add edition.");
+      toast.error(err.response?.data?.message || "Failed to add edition.");
     } finally {
       setSaving(false);
     }
@@ -228,7 +232,7 @@ export default function GameConfig() {
       notifySuccess("Edition removed.");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to delete edition.");
+      toast.error(err.response?.data?.message || "Failed to delete edition.");
     } finally {
       setSaving(false);
     }
@@ -237,7 +241,10 @@ export default function GameConfig() {
   const handleAddDiscount = async (e: React.FormEvent) => {
     e.preventDefault();
     const pct = Number(discountPercent);
-    if (isNaN(pct) || pct <= 0 || pct > 100) return alert("Valid discount percentage (1-100) is required.");
+    if (isNaN(pct) || pct <= 0 || pct > 100) {
+      toast.warning("Valid discount percentage (1-100) is required.");
+      return;
+    }
     try {
       setSaving(true);
       await addDiscountAPI(id!, {
@@ -249,7 +256,7 @@ export default function GameConfig() {
       notifySuccess("Promotional discount scheduled!");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to add discount.");
+      toast.error(err.response?.data?.message || "Failed to add discount.");
     } finally {
       setSaving(false);
     }
@@ -267,7 +274,7 @@ export default function GameConfig() {
       notifySuccess("Visual media assets updated!");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to update media.");
+      toast.error(err.response?.data?.message || "Failed to update media.");
     } finally {
       setSaving(false);
     }
@@ -293,7 +300,7 @@ export default function GameConfig() {
       notifySuccess("System requirements updated!");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to save requirements.");
+      toast.error(err.response?.data?.message || "Failed to save requirements.");
     } finally {
       setSaving(false);
     }
@@ -342,7 +349,7 @@ export default function GameConfig() {
       notifySuccess("Playtime telemetry benchmarks saved!");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to save telemetry.");
+      toast.error(err.response?.data?.message || "Failed to save telemetry.");
     } finally {
       setSaving(false);
     }
@@ -350,7 +357,10 @@ export default function GameConfig() {
 
   const handleAddVersion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVersionNumber.trim()) return alert("Semantic version string required (e.g. 1.0.0)");
+    if (!newVersionNumber.trim()) {
+      toast.warning("Semantic version string required (e.g. 1.0.0)");
+      return;
+    }
     try {
       setSaving(true);
       await addVersionAPI(id!, {
@@ -364,7 +374,7 @@ export default function GameConfig() {
       setNewVersionChangelog("");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to deploy version.");
+      toast.error(err.response?.data?.message || "Failed to deploy version.");
     } finally {
       setSaving(false);
     }
@@ -375,10 +385,10 @@ export default function GameConfig() {
     try {
       setSaving(true);
       await submitGameAPI(id!);
-      alert("Game submitted for review! GameStation admins will evaluate and approve for public storefront.");
+      toast.success("Game submitted for review! GameStation admins will evaluate and approve for public storefront.");
       fetchGame(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Submission failed. Ensure you have configured pricing, media, and at least one deployed version build.");
+      toast.error(err.response?.data?.message || "Submission failed. Ensure you have configured pricing, media, and at least one deployed version build.");
     } finally {
       setSaving(false);
     }

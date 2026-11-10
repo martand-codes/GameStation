@@ -2,9 +2,27 @@ import { prisma } from "../prisma/db.js";
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from "../Utils/errors.js";
 import { getSystemControls } from "./governance.service.js";
 
-export const getPendingGames = async () => {
+export const getPendingGames = async (requesterId?: string) => {
+  let role = "ADMIN";
+  if (requesterId) {
+    const requester = await prisma.user.findUnique({ where: { id: requesterId } });
+    if (requester) role = requester.role;
+  }
+
+  // PRIVACY & CLEARANCE ISOLATION:
+  // Root Sovereign (OWNER) has global fleet visibility to oversee all queues.
+  // Standard Staff (ADMIN) can ONLY see tickets assigned to them or unassigned in the public pool.
+  // Work assigned to other admins is strictly blinded and inaccessible.
+  const whereClause: any = { status: "PENDING" };
+  if (role !== "OWNER" && requesterId) {
+    whereClause.OR = [
+      { assignedAdminId: requesterId },
+      { assignedAdminId: null },
+    ];
+  }
+
   return await prisma.game.findMany({
-    where: { status: "PENDING" },
+    where: whereClause,
     include: {
       developer: {
         select: {
@@ -166,12 +184,44 @@ export const rejectGame = async (gameId: string, reviewerId?: string, reason?: s
   return updatedGame;
 };
 
-export const getAdminDashboardMetrics = async () => {
+export const getAdminDashboardMetrics = async (requesterId?: string) => {
   const start = Date.now();
   await prisma.$queryRaw`SELECT 1`;
   const dbLatencyMs = Date.now() - start;
 
+  let role = "ADMIN";
+  if (requesterId) {
+    const requester = await prisma.user.findUnique({ where: { id: requesterId } });
+    if (requester) role = requester.role;
+  }
+  const isOwner = role === "OWNER";
+
   const past24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  // Scoped backlog query: Owner sees all, Admin sees only their assigned workload + unassigned pool
+  const backlogWhere: any = { status: "PENDING" };
+  const certsWhere: any = { status: { in: ["PUBLISHED", "REJECTED"] }, reviewedAt: { not: null } };
+  const logsWhere: any = {
+    action: {
+      in: [
+        "GAME_CERTIFIED",
+        "GAME_REJECTED",
+        "ROOT_GAME_MODERATION",
+        "USER_SUSPENDED",
+        "USER_RESTORED",
+        "USER_ROLE_REASSIGNED",
+      ],
+    },
+  };
+
+  if (!isOwner && requesterId) {
+    backlogWhere.OR = [
+      { assignedAdminId: requesterId },
+      { assignedAdminId: null },
+    ];
+    certsWhere.reviewedByAdminId = requesterId;
+    logsWhere.actorId = requesterId;
+  }
 
   const [
     pendingCount,
@@ -187,7 +237,7 @@ export const getAdminDashboardMetrics = async () => {
     recentCertifications,
     recentAuditLogs,
   ] = await Promise.all([
-    prisma.game.count({ where: { status: "PENDING" } }),
+    prisma.game.count({ where: backlogWhere }),
     prisma.game.count({ where: { status: "PUBLISHED" } }),
     prisma.game.count({ where: { status: "HIDDEN" } }),
     prisma.game.count({ where: { status: "REJECTED" } }),
@@ -196,7 +246,7 @@ export const getAdminDashboardMetrics = async () => {
     prisma.user.count({ where: { role: "DEVELOPER" } }),
     // Oldest waiting submissions first
     prisma.game.findMany({
-      where: { status: "PENDING" },
+      where: backlogWhere,
       select: {
         id: true,
         title: true,
@@ -228,16 +278,18 @@ export const getAdminDashboardMetrics = async () => {
       where: {
         status: "PUBLISHED",
         reviewedAt: { gte: past24h },
+        ...(!isOwner && requesterId ? { reviewedByAdminId: requesterId } : {}),
       },
     }),
     prisma.game.count({
       where: {
         status: "REJECTED",
         reviewedAt: { gte: past24h },
+        ...(!isOwner && requesterId ? { reviewedByAdminId: requesterId } : {}),
       },
     }),
     prisma.game.findMany({
-      where: { status: { in: ["PUBLISHED", "REJECTED"] }, reviewedAt: { not: null } },
+      where: certsWhere,
       select: {
         id: true,
         title: true,
@@ -251,18 +303,7 @@ export const getAdminDashboardMetrics = async () => {
       take: 6,
     }),
     prisma.governanceAuditLog.findMany({
-      where: {
-        action: {
-          in: [
-            "GAME_CERTIFIED",
-            "GAME_REJECTED",
-            "ROOT_GAME_MODERATION",
-            "USER_SUSPENDED",
-            "USER_RESTORED",
-            "USER_ROLE_REASSIGNED",
-          ],
-        },
-      },
+      where: logsWhere,
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
@@ -792,6 +833,16 @@ export const assignGameReview = async (data: {
   const game = await prisma.game.findUnique({ where: { id: gameId } });
   if (!game) throw new NotFoundError("Game submission not found");
   if (game.status !== "PENDING") throw new BadRequestError("Only pending submissions can be delegated");
+
+  // DELEGATION CLEARANCE RULE:
+  // Root Sovereign (OWNER) can delegate ANY ticket across all staff.
+  // Standard Staff (ADMIN) can ONLY delegate a ticket that is currently assigned to THEMSELVES (or unassigned).
+  // An admin cannot reassign, hijack, or steal another admin's locked ticket!
+  if (game.assignedAdminId && game.assignedAdminId !== actingStaffId && actingStaff.role !== "OWNER") {
+    throw new ForbiddenError(
+      "Privilege Violation: You cannot reassign a ticket held by another staff reviewer. Only the Sovereign Owner or the holding reviewer can delegate this ticket."
+    );
+  }
 
   const updated = await prisma.game.update({
     where: { id: gameId },

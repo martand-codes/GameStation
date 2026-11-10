@@ -6,8 +6,10 @@ import {
   toggleUserSuspensionAPI,
   changeUserRoleAPI,
 } from '../../../Services/Governance.service';
+import { useToast } from '../../../Context/ToastContext';
 
 export default function UserModerationDeck() {
+  const toast = useToast();
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,15 +44,16 @@ export default function UserModerationDeck() {
 
     try {
       await toggleUserSuspensionAPI(userId, reason.trim() || undefined);
+      toast.success('User suspension status updated');
       await fetchUsers(search);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update user status');
+      toast.error(err.response?.data?.message || 'Failed to update user status');
     }
   };
 
   const handleChangeRole = async (userId: string, username: string, currentRole: string) => {
     if (currentRole === 'OWNER') {
-      alert('The root sovereign clearance role cannot be modified.');
+      toast.warning('The root sovereign clearance role cannot be modified.');
       return;
     }
 
@@ -62,15 +65,16 @@ export default function UserModerationDeck() {
 
     const formattedRole = newRole.trim().toUpperCase() as 'PLAYER' | 'DEVELOPER' | 'ADMIN';
     if (!['PLAYER', 'DEVELOPER', 'ADMIN'].includes(formattedRole)) {
-      alert('Invalid role specified. Must be PLAYER, DEVELOPER, or ADMIN.');
+      toast.error('Invalid role specified. Must be PLAYER, DEVELOPER, or ADMIN.');
       return;
     }
 
     try {
       await changeUserRoleAPI(userId, formattedRole);
+      toast.success(`Role for @${username} changed to [${formattedRole}]`);
       await fetchUsers(search);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to reassign role');
+      toast.error(err.response?.data?.message || 'Failed to reassign role');
     }
   };
 

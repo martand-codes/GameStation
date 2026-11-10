@@ -7,19 +7,22 @@ import { AuthProvider } from './Context/AuthContext'
 import { CartProvider } from './Context/CartContext'
 import { WishlistProvider } from './Context/WishlistContext'
 import { WalletProvider } from './Context/WalletContext'
+import { ToastProvider } from './Context/ToastContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <WishlistProvider>
-        <CartProvider>
-          <AuthProvider>
-            <WalletProvider>
-              <App />
-            </WalletProvider>
-          </AuthProvider>
-        </CartProvider>
-      </WishlistProvider>
+      <ToastProvider>
+        <WishlistProvider>
+          <CartProvider>
+            <AuthProvider>
+              <WalletProvider>
+                <App />
+              </WalletProvider>
+            </AuthProvider>
+          </CartProvider>
+        </WishlistProvider>
+      </ToastProvider>
     </BrowserRouter>
   </StrictMode>,
 )

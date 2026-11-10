@@ -26,8 +26,10 @@ import {
   getDeveloperPayoutsAPI,
   disburseDeveloperPayoutAPI,
 } from '../../../Services/Governance.service';
+import { useToast } from '../../../Context/ToastContext';
 
 export default function TreasuryLedger() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'ledger' | 'payouts'>('ledger');
 
   // Ledger state
@@ -102,10 +104,11 @@ export default function TreasuryLedger() {
       setCurrentSavedRate(royaltyRate);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+      toast.success('Platform royalty rate successfully updated');
       fetchLedger();
       fetchPayouts();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update royalty rate');
+      toast.error(err.response?.data?.message || 'Failed to update royalty rate');
     } finally {
       setSavingRate(false);
     }
@@ -131,9 +134,10 @@ export default function TreasuryLedger() {
 
       setDisburseReceipt(result);
       setDisbursingDev(null);
+      toast.success(`Disbursal of ₹${disburseAmount.toLocaleString('en-IN')} approved`);
       await fetchPayouts();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Disbursal clearance failed');
+      toast.error(err.response?.data?.message || 'Disbursal clearance failed');
     } finally {
       setDisbursing(false);
     }
@@ -141,7 +145,7 @@ export default function TreasuryLedger() {
 
   const exportLedgerCSV = () => {
     if (ledger.length === 0) {
-      alert('No ledger transactions available to export.');
+      toast.warning('No ledger transactions available to export.');
       return;
     }
 
@@ -180,11 +184,12 @@ export default function TreasuryLedger() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Ledger CSV exported successfully');
   };
 
   const exportPayoutsCSV = () => {
     if (!payoutsData || payoutsData.rosters.length === 0) {
-      alert('No developer settlement records available to export.');
+      toast.warning('No developer settlement records available to export.');
       return;
     }
 

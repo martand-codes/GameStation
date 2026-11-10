@@ -909,6 +909,12 @@ export const getAllPlatformGames = async (search?: string) => {
       },
       pricing: true,
       media: true,
+      reviewedByAdmin: {
+        select: {
+          id: true,
+          username: true,
+        },
+      },
       _count: {
         select: {
           payments: true,

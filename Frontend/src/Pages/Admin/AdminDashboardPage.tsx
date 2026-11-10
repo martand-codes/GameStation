@@ -32,9 +32,12 @@ import {
   Cell,
 } from 'recharts';
 import { getAdminDashboardMetricsAPI } from '../../Services/Admin.service';
+import { useAuth } from '../../Context/AuthContext';
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isOwner = user?.role === 'OWNER';
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -394,13 +397,15 @@ export default function AdminDashboardPage() {
             </div>
             <div>
               <h3 className="text-sm font-bold font-mono uppercase tracking-wider text-white flex items-center gap-2">
-                <span>Certification Backlog &amp; SLA Monitor</span>
+                <span>{isOwner ? 'Certification Backlog & SLA Monitor' : 'My Assigned Review Queue & SLA'}</span>
                 <span className="text-[10px] font-mono font-bold text-blue-300 bg-blue-950/70 border border-blue-500/30 px-2 py-0.5 rounded-full">
                   {pendingBacklog.length} QUEUED
                 </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Oldest pending developer submissions prioritized by submission timestamp
+                {isOwner
+                  ? 'Oldest pending developer submissions prioritized by submission timestamp'
+                  : 'Your active review ticket assignments prioritized by submission timestamp'}
               </p>
             </div>
           </div>
@@ -482,13 +487,19 @@ export default function AdminDashboardPage() {
                         : `Awaiting (${game.waitingHours}h)`}
                     </span>
 
-                    {game.assignedAdmin ? (
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        @{game.assignedAdmin.username}
-                      </span>
+                    {isOwner ? (
+                      game.assignedAdmin ? (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          @{game.assignedAdmin.username}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                          Unassigned
+                        </span>
+                      )
                     ) : (
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                        Unassigned
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1 font-mono">
+                        <Lock className="w-2.5 h-2.5" /> Assigned to You
                       </span>
                     )}
                   </div>
