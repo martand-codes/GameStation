@@ -104,28 +104,36 @@ export class SearchEngine {
     let correctedTerms: string[] = [];
     let hadCorrection = false;
 
-    // 2. Fuzzy Spell Checking & Typo Recovery via Trie Levenshtein Automaton
-    if (fuzzy) {
-      finalQueryTokens = finalQueryTokens.map((token) => {
-        // If exact token exists in vocabulary, keep it!
-        if (this.index.getDocumentFrequency(token) > 0) {
-          correctedTerms.push(token);
-          return token;
-        }
+    // 2. Prefix Matching & Fuzzy Typo Recovery
+    finalQueryTokens = finalQueryTokens.flatMap((token) => {
+      // A. If exact term exists in vocabulary, use it!
+      if (this.index.getDocumentFrequency(token) > 0) {
+        correctedTerms.push(token);
+        return [token];
+      }
 
-        // Token not found in vocabulary: run fuzzy branch & bound Trie search
+      // B. Check PREFIX MATCH FIRST!
+      // If user typed "cyb" or "cybe", autocomplete finds "cyberpunk"
+      const prefixMatches = this.trie.autocomplete(token, 3);
+      if (prefixMatches.length > 0) {
+        correctedTerms.push(prefixMatches[0]);
+        return prefixMatches;
+      }
+
+      // C. If NO prefix match exists and fuzzy is enabled, check Levenshtein typo distance
+      if (fuzzy) {
         const fuzzyCandidates = this.trie.searchFuzzy(token, maxDistance);
         if (fuzzyCandidates.length > 0 && fuzzyCandidates[0].distance > 0) {
           hadCorrection = true;
           const bestMatch = fuzzyCandidates[0].word;
           correctedTerms.push(bestMatch);
-          return bestMatch;
+          return [bestMatch];
         }
+      }
 
-        correctedTerms.push(token);
-        return token;
-      });
-    }
+      correctedTerms.push(token);
+      return [token];
+    });
 
     // 3. Score candidate documents using Okapi BM25
     const rankedCandidates = this.scorer.score(this.index, finalQueryTokens);

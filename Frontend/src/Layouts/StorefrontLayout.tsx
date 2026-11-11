@@ -13,7 +13,7 @@ import GameLauncherModal from '../Components/Store/GameLauncherModal';
 import SessionSummaryModal from '../Components/Store/SessionSummaryModal';
 import LiveActivityTicker from '../Components/Storefront/LiveActivityTicker';
 import NotificationBell from '../Components/Common/NotificationBell';
-import CommandSearchPalette from '../Components/Store/CommandSearchPalette';
+import SearchDropdown from '../Components/Store/SearchDropdown';
 
 export default function StorefrontLayout() {
   const { user, logout } = useAuth();
@@ -21,7 +21,7 @@ export default function StorefrontLayout() {
   const location = useLocation();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchPaletteOpen, setIsSearchPaletteOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [dismissedBroadcast, setDismissedBroadcast] = useState(false);
@@ -51,12 +51,15 @@ export default function StorefrontLayout() {
     return () => clearInterval(interval);
   }, []);
 
-  // Global Command+K / Ctrl+K search palette trigger
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Global Command+K / Ctrl+K focus search bar trigger
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        setIsSearchPaletteOpen((prev) => !prev);
+        searchInputRef.current?.focus();
+        setIsSearchActive(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -230,23 +233,48 @@ export default function StorefrontLayout() {
             </span>
           </div>
 
-          {/* Engineer Search (Terminal Input style & Command Palette Trigger) */}
-          <div className="flex-1 max-w-2xl px-12 hidden md:block">
+          {/* Engineer Search (Inline Terminal Input & Anchored Search Dropdown) */}
+          <div className="flex-1 max-w-2xl px-12 hidden md:block relative">
             <div
-              onClick={() => setIsSearchPaletteOpen(true)}
-              className="flex items-center justify-between bg-[#0D1117] border border-[#30363D] hover:border-emerald-500/50 rounded-md px-3 py-1.5 transition-all duration-300 cursor-pointer shadow-sm group"
+              className={`flex items-center justify-between bg-[#0D1117] border ${
+                isSearchActive ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-[#30363D]'
+              } rounded-md px-3 py-1.5 transition-all duration-200 group`}
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <span className="text-emerald-500 font-bold text-sm">λ</span>
-                <span className="text-sm text-[#8B949E] group-hover:text-[#C9D1D9] transition-colors truncate">
-                  execute query --target=games
-                </span>
-                <span className="animate-pulse w-1.5 h-4 bg-emerald-500 ml-0.5 opacity-70"></span>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchActive(true)}
+                  placeholder="execute query --target=games (e.g. Cyberpunk, Witcher...)"
+                  className="w-full bg-transparent border-none outline-none text-sm text-[#C9D1D9] placeholder-[#484F58] font-mono"
+                />
               </div>
+
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-neutral-500 hover:text-white transition-colors mr-2 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : null}
+
               <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-700 text-[10px] text-neutral-400 font-mono">
                 <span>Ctrl+K</span>
               </div>
             </div>
+
+            {/* ANCHORED SEARCH DROPDOWN DIRECTLY UNDERNEATH INPUT */}
+            <SearchDropdown
+              query={searchQuery}
+              isOpen={isSearchActive && searchQuery.trim().length > 0}
+              onClose={() => setIsSearchActive(false)}
+              onSelectCorrection={(corrected) => setSearchQuery(corrected)}
+            />
           </div>
 
           {/* Right Panel */}
@@ -302,7 +330,7 @@ export default function StorefrontLayout() {
 
             {/* Mobile Search Button */}
             <button
-              onClick={() => setIsSearchPaletteOpen(true)}
+              onClick={() => setIsMobileSearchOpen((prev) => !prev)}
               className="md:hidden text-[#8B949E] hover:text-white transition-colors p-1"
               title="Search Games"
             >
@@ -381,6 +409,45 @@ export default function StorefrontLayout() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Inline Search Bar & Anchored Dropdown */}
+      {isMobileSearchOpen && (
+        <div className="md:hidden p-3 bg-[#0A0D14] border-b border-[#1E2633] relative z-40">
+          <div className="flex items-center bg-[#05070B] border border-emerald-500 rounded-xl px-3 py-2">
+            <span className="text-emerald-500 font-bold text-sm mr-2">λ</span>
+            <input
+              type="text"
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="execute query --target=games..."
+              className="w-full bg-transparent border-none outline-none text-xs text-white placeholder-neutral-500 font-mono"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-neutral-400 hover:text-white mr-2"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsMobileSearchOpen(false)}
+              className="text-neutral-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <SearchDropdown
+            query={searchQuery}
+            isOpen={searchQuery.trim().length > 0}
+            onClose={() => setIsMobileSearchOpen(false)}
+            onSelectCorrection={(corrected) => setSearchQuery(corrected)}
+          />
+        </div>
+      )}
 
       {/* Main Layout */}
       <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
@@ -479,7 +546,6 @@ export default function StorefrontLayout() {
       <GameLauncherModal />
       <SessionSummaryModal />
       <LiveActivityTicker />
-      <CommandSearchPalette isOpen={isSearchPaletteOpen} onClose={() => setIsSearchPaletteOpen(false)} />
     </div>
   );
 }
