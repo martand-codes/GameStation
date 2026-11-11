@@ -20,6 +20,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { getAdminDashboardMetricsAPI } from '../Services/Admin.service';
+import NotificationBell from '../Components/Common/NotificationBell';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -174,6 +175,9 @@ export default function AdminLayout() {
             <Clock className="w-3.5 h-3.5 text-blue-400" />
             <span>{timeString}</span>
           </div>
+
+          {/* Real-time Notification Center */}
+          <NotificationBell />
 
           {/* Operator Profile Pill */}
           <div className="flex items-center gap-2 pl-2 border-l border-blue-900/40">

@@ -1,6 +1,7 @@
 import { prisma } from "../prisma/db.js";
 import { NotFoundError, BadRequestError, ForbiddenError, ConflictError } from "../Utils/errors.js";
 import { getSystemControls } from "./governance.service.js";
+import { sendUserNotification, sendRoleNotification, broadcastActivity } from "../socket.js";
 
 export const getPendingGames = async (requesterId?: string) => {
   let role = "ADMIN";
@@ -122,6 +123,19 @@ export const approveGame = async (gameId: string, reviewerId?: string) => {
     },
   });
 
+  try {
+    if (updatedGame.developer?.id) {
+      sendUserNotification(updatedGame.developer.id, {
+        type: "CERTIFICATION",
+        title: `Build Approved: "${updatedGame.title}" is Live!`,
+        message: `Your title passed Ring-3 QA compliance and has been published to the GameStation storefront catalog.`,
+        targetUrl: `/developer/portal`,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to emit approval notification:", err);
+  }
+
   return updatedGame;
 };
 
@@ -180,6 +194,19 @@ export const rejectGame = async (gameId: string, reviewerId?: string, reason?: s
       details: `Title "${game.title}" rejected certification: ${rejectionReason}`,
     },
   });
+
+  try {
+    if (updatedGame.developer?.id) {
+      sendUserNotification(updatedGame.developer.id, {
+        type: "CERTIFICATION",
+        title: `QA Action: "${updatedGame.title}" Rejected`,
+        message: `Your title was rejected during QA review: "${rejectionReason}". Review QA dossier in Game Studio.`,
+        targetUrl: `/developer/portal`,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to emit rejection notification:", err);
+  }
 
   return updatedGame;
 };
@@ -869,6 +896,17 @@ export const assignGameReview = async (data: {
       ipAddress: ipAddress || "127.0.0.1",
     },
   });
+
+  try {
+    sendUserNotification(targetAdminId, {
+      type: "SYSTEM",
+      title: `QA Ticket Assigned: "${game.title}"`,
+      message: `@${actingStaff.username} assigned certification review for "${game.title}" to your queue.`,
+      targetUrl: `/admin/certifications`,
+    });
+  } catch (err) {
+    console.error("Failed to emit delegation notification:", err);
+  }
 
   return updated;
 };

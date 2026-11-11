@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 
 import EmpireMetrics from './components/EmpireMetrics';
+import LiveMissionControl from './components/LiveMissionControl';
 import EmpireRevenueChart from './components/charts/EmpireRevenueChart';
 import GenreDonutChart from './components/charts/GenreDonutChart';
 import ReviewVelocityChart from './components/charts/ReviewVelocityChart';
@@ -186,6 +187,15 @@ export default function GovernanceCockpit() {
           </span>
         </div>
         <EmpireMetrics metrics={metrics} />
+      </motion.div>
+
+      {/* ── 2.2 REAL-TIME MISSION CONTROL TELEMETRY (WEBSOCKETS) ──────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.06 }}
+      >
+        <LiveMissionControl />
       </motion.div>
 
       {/* ── 2.5 STOREFRONT CAMPAIGN SPOTLIGHT (SOVEREIGN BROADCAST) ───── */}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import { Gamepad2, LayoutDashboard, Settings, BarChart3, Wallet, LogOut, UserCircle, Crown, MessageSquare } from 'lucide-react';
+import NotificationBell from '../Components/Common/NotificationBell';
 
 export default function DeveloperLayout() {
   const { user, logout } = useAuth();
@@ -62,11 +63,12 @@ export default function DeveloperLayout() {
         <header className="h-16 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-10">
           <div className="md:hidden font-black text-emerald-400 tracking-widest">GS DEV</div>
           <div className="flex-1"></div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <button onClick={() => navigate('/dashboard')} className="text-sm font-bold text-neutral-400 hover:text-white transition-colors">
               [ Switch to Player View ]
             </button>
-            <div className="flex items-center gap-3 pl-6 border-l border-neutral-800">
+            <NotificationBell />
+            <div className="flex items-center gap-3 pl-4 border-l border-neutral-800">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-white leading-none">{user?.username || 'Developer'}</p>
                 <div className="flex items-center gap-1 mt-1 justify-end">

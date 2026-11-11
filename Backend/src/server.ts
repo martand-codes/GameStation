@@ -1,8 +1,7 @@
+import http from "node:http";
 import app from "./app.js";
+import { initSocketServer } from "./socket.js";
 import "dotenv/config";
-
- 
-
 
 const requiredEnvs = ["JWT_ACCESS_KEY", "JWT_REFRESH_KEY", "DATABASE_URL"];
 for (const env of requiredEnvs) {
@@ -14,8 +13,9 @@ for (const env of requiredEnvs) {
 
 const port = process.env.PORT || 5000;
 
+const httpServer = http.createServer(app);
+initSocketServer(httpServer);
 
-
-app.listen(port, ()=> {
+httpServer.listen(port, () => {
     console.log(`Server listening on http://localhost:${port}`); 
 });

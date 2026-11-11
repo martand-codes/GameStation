@@ -1,5 +1,6 @@
 import { prisma } from "../prisma/db.js";
 import { NotFoundError, BadRequestError, ForbiddenError } from "../Utils/errors.js";
+import { broadcastActivity, sendUserNotification } from "../socket.js";
 
 export interface SubmitReviewInput {
   gameId: string;
@@ -49,7 +50,7 @@ export const submitReview = async (userId: string, data: SubmitReviewInput) => {
   // Verify the target game exists and is published
   const game = await prisma.game.findUnique({
     where: { id: data.gameId },
-    select: { id: true, title: true, status: true },
+    select: { id: true, title: true, status: true, developerId: true },
   });
 
   if (!game) {
@@ -116,6 +117,27 @@ export const submitReview = async (userId: string, data: SubmitReviewInput) => {
       },
     },
   });
+
+  try {
+    broadcastActivity({
+      type: "REVIEW_POSTED",
+      username: review.user.username,
+      gameTitle: game.title,
+      gameId: data.gameId,
+      details: `Rated ${rating}.0/5.0 (${rating === 5 ? 'Masterpiece' : rating >= 4 ? 'Great' : 'Verified'})`,
+    });
+
+    if (game.developerId) {
+      sendUserNotification(game.developerId, {
+        type: "REVIEW",
+        title: `New ${rating}★ Review on "${game.title}"`,
+        message: `@${review.user.username} rated "${game.title}" ${rating}/5: "${data.headline || data.content.slice(0, 60)}..."`,
+        targetUrl: `/developer/reviews?gameId=${data.gameId}`,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to broadcast review event:", err);
+  }
 
   return review;
 };
@@ -549,6 +571,27 @@ export const replyToReview = async (
     },
   });
 
+  try {
+    broadcastActivity({
+      type: "STUDIO_REPLY",
+      username: updated.game.title,
+      gameTitle: updated.game.title,
+      gameId: updated.game.id,
+      details: "Official studio response published",
+    });
+
+    if (review.userId) {
+      sendUserNotification(review.userId, {
+        type: "DEVELOPER_REPLY",
+        title: `Developer Replied to Your Review`,
+        message: `The developer of "${updated.game.title}" officially responded: "${response.trim().slice(0, 80)}..."`,
+        targetUrl: `/store/games/${updated.game.id}`,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to broadcast studio reply event:", err);
+  }
+
   return updated;
 };
 
@@ -580,6 +623,27 @@ export const deleteReply = async (userId: string, userRole: string, reviewId: st
       developerRespondedAt: null,
     },
   });
+
+  try {
+    broadcastActivity({
+      type: "STUDIO_REPLY",
+      username: updated.game.title,
+      gameTitle: updated.game.title,
+      gameId: updated.game.id,
+      details: "Official studio response published",
+    });
+
+    if (review.userId) {
+      sendUserNotification(review.userId, {
+        type: "DEVELOPER_REPLY",
+        title: `Developer Replied to Your Review`,
+        message: `The developer of "${updated.game.title}" officially responded: "${response.trim().slice(0, 80)}..."`,
+        targetUrl: `/store/games/${updated.game.id}`,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to broadcast studio reply event:", err);
+  }
 
   return updated;
 };

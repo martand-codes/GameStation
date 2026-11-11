@@ -11,6 +11,8 @@ import CartDrawer from '../Components/Store/CartDrawer';
 import WishlistDrawer from '../Components/Store/WishlistDrawer';
 import GameLauncherModal from '../Components/Store/GameLauncherModal';
 import SessionSummaryModal from '../Components/Store/SessionSummaryModal';
+import LiveActivityTicker from '../Components/Storefront/LiveActivityTicker';
+import NotificationBell from '../Components/Common/NotificationBell';
 
 export default function StorefrontLayout() {
   const { user, logout } = useAuth();
@@ -306,6 +308,9 @@ export default function StorefrontLayout() {
               )}
             </button>
 
+            {/* Real-time Notification Bell */}
+            <NotificationBell />
+
             {/* Profile Dropdown */}
             <div className="relative group">
               <div className="flex items-center gap-2 cursor-pointer border border-[#30363D] px-2 py-1 rounded-md bg-[#0D1117] hover:border-[#8B949E] transition-colors">
@@ -448,6 +453,7 @@ export default function StorefrontLayout() {
       <WishlistDrawer isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
       <GameLauncherModal />
       <SessionSummaryModal />
+      <LiveActivityTicker />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import type { LibraryItem } from '../Services/Library.service';
 import { recordPlaytimeAPI } from '../Services/Telemetry.service';
 import { useToast } from './ToastContext';
+import { useSocket } from './SocketContext';
 
 export interface ActiveSession {
   gameId: string;
@@ -49,6 +50,7 @@ const GameSessionContext = createContext<GameSessionContextType | undefined>(und
 
 export const GameSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const toast = useToast();
+  const { notifyGameStart, notifyGameStop } = useSocket();
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [isLauncherOpen, setIsLauncherOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -135,6 +137,13 @@ export const GameSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setActiveSession(newSession);
     setIsLauncherOpen(true);
     setIsMinimized(false);
+
+    // Broadcast live presence via WebSockets
+    notifyGameStart({
+      gameId: item.game.id,
+      gameTitle: item.game.title,
+      coverImageUrl: item.game.media?.coverImageUrl,
+    });
   };
 
   const minimizeSession = () => {
@@ -180,6 +189,9 @@ export const GameSessionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setActiveSession(null);
     setIsLauncherOpen(false);
     setIsMinimized(false);
+
+    // Notify WebSocket server that player exited
+    notifyGameStop();
   };
 
   const clearSessionSummary = () => {

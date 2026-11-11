@@ -26,6 +26,7 @@ import { getEmpireMetricsAPI, createStaffInviteAPI } from '../Services/Governanc
 import IssueInviteModal from '../Pages/Governance/components/IssueInviteModal';
 import SystemTelemetryModal from '../Pages/Governance/components/SystemTelemetryModal';
 import SovereignGreeterGate from '../Pages/Governance/components/SovereignGreeterGate';
+import NotificationBell from '../Components/Common/NotificationBell';
 
 export default function GovernanceLayout() {
   const { user, logout } = useAuth();
@@ -354,6 +355,9 @@ export default function GovernanceLayout() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Real-time Notification Bell */}
+            <NotificationBell />
+
             {/* Live UTC Clock */}
             <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
               <Clock className="w-3.5 h-3.5 text-[#FF1E27]" />

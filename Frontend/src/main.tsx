@@ -9,6 +9,7 @@ import { WishlistProvider } from './Context/WishlistContext'
 import { WalletProvider } from './Context/WalletContext'
 import { ToastProvider } from './Context/ToastContext'
 import { GameSessionProvider } from './Context/GameSessionContext'
+import { SocketProvider } from './Context/SocketContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -17,11 +18,13 @@ createRoot(document.getElementById('root')!).render(
         <WishlistProvider>
           <CartProvider>
             <AuthProvider>
-              <WalletProvider>
-                <GameSessionProvider>
-                  <App />
-                </GameSessionProvider>
-              </WalletProvider>
+              <SocketProvider>
+                <WalletProvider>
+                  <GameSessionProvider>
+                    <App />
+                  </GameSessionProvider>
+                </WalletProvider>
+              </SocketProvider>
             </AuthProvider>
           </CartProvider>
         </WishlistProvider>

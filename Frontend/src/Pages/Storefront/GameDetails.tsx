@@ -7,6 +7,7 @@ import AiSystemCheck from '../../Components/Store/AiSystemCheck';
 import TelemetryReviews from '../../Components/Store/TelemetryReviews';
 import MediaGallery from '../../Components/Store/MediaGallery';
 import GameEditions from '../../Components/Store/GameEditions';
+import { useSocket } from '../../Context/SocketContext';
 
 interface Game {
   id: string;
@@ -24,6 +25,7 @@ interface Game {
 export default function GameDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { getGameActivePlayerCount } = useSocket();
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<string[]>(['> Initializing game node sequence...']);
@@ -77,20 +79,32 @@ export default function GameDetails() {
   }
 
   const latestVersion = game.versions?.find(v => v.isLatest) || game.versions?.[0];
+  const livePlayersInGame = game ? getGameActivePlayerCount(game.id) : 0;
 
   return (
     <div className="font-mono text-[#C9D1D9] max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
 
       {/* Title & Breadcrumbs */}
-      <div className="mb-4">
-        <div className="text-xs text-[#8B949E] mb-2 flex items-center gap-2">
-          <span className="hover:text-white cursor-pointer transition-colors">All Games</span> &gt;
-          <span className="hover:text-white cursor-pointer transition-colors">{game.genre} Games</span> &gt;
-          <span className="text-white">{game.title}</span>
+      <div className="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-3">
+        <div>
+          <div className="text-xs text-[#8B949E] mb-2 flex items-center gap-2">
+            <span className="hover:text-white cursor-pointer transition-colors">All Games</span> &gt;
+            <span className="hover:text-white cursor-pointer transition-colors">{game.genre} Games</span> &gt;
+            <span className="text-white">{game.title}</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white tracking-tighter drop-shadow-md">
+            {game.title}
+          </h1>
         </div>
-        <h1 className="text-3xl font-bold text-white tracking-tighter drop-shadow-md">
-          {game.title}
-        </h1>
+
+        {/* Live CCU Badge */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 font-mono text-xs text-emerald-400 self-start md:self-auto">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="font-bold">{livePlayersInGame} In-Game Right Now</span>
+        </div>
       </div>
 
       {/* Top Hero Section: Media Gallery + Info Column */}
@@ -112,6 +126,10 @@ export default function GameDetails() {
             <div className="flex justify-between">
               <span className="text-[#556772]">RECENT REVIEWS:</span>
               <span className="text-emerald-500">Very Positive</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#556772]">IN-GAME RIGHT NOW:</span>
+              <span className="text-emerald-400 font-bold">{livePlayersInGame} playing</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#556772]">RELEASE DATE:</span>
