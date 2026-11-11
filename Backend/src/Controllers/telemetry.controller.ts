@@ -2,6 +2,7 @@ import type { Response } from "express";
 import { prisma } from "../prisma/db.js";
 import type { AuthRequest } from "../Middlewares/bouncer.middleware.js";
 import { tracer } from "../Telemetry/Tracer.js";
+import { rateLimiter } from "../RateLimiter/SlidingWindowLog.js";
 import type { TelemetryFilter } from "../Telemetry/types.js";
 
 /**
@@ -164,11 +165,15 @@ export const getMetrics = async (req: AuthRequest, res: Response): Promise<void>
     }
 
     const metrics = tracer.ringBuffer.computeMetrics(studioGameIds);
+    const abuseStats = user.role === 'OWNER' ? rateLimiter.getAbuseStats() : undefined;
 
     res.status(200).json({
       success: true,
       role: user.role,
-      metrics,
+      metrics: {
+        ...metrics,
+        abuseStats
+      },
     });
   } catch (error: any) {
     console.error("[Telemetry Controller] getMetrics error:", error);

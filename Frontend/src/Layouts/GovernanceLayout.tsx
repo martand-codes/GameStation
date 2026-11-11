@@ -28,6 +28,7 @@ import IssueInviteModal from '../Pages/Governance/components/IssueInviteModal';
 import SystemTelemetryModal from '../Pages/Governance/components/SystemTelemetryModal';
 import SovereignGreeterGate from '../Pages/Governance/components/SovereignGreeterGate';
 import NotificationBell from '../Components/Common/NotificationBell';
+import ErrorBoundary from '../Components/Common/ErrorBoundary';
 
 export default function GovernanceLayout() {
   const { user, logout } = useAuth();
@@ -386,7 +387,9 @@ export default function GovernanceLayout() {
 
         {/* Dynamic Page Outlet */}
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          <ErrorBoundary fallbackTitle="Governance Console Subsystem Interrupted">
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 

@@ -2,6 +2,7 @@ import { prisma } from "../../prisma/db.js";
 import { SagaOrchestrator } from "../SagaOrchestrator.js";
 import { sendUserNotification, broadcastActivity } from "../../socket.js";
 import { BadRequestError, NotFoundError } from "../../Utils/errors.js";
+import { webhookDispatcher } from "../../Webhooks/WebhookDispatcher.js";
 import type { SagaOptions } from "../types.js";
 
 export interface GamePurchaseContext {
@@ -281,6 +282,26 @@ export const createGamePurchaseSaga = (options: SagaOptions) => {
         gameId: ctx.gameId,
         details: `Unlocked ${ctx.editionName || "Edition"}`,
       });
+
+      // 4. Asynchronous Cryptographic Webhook Dispatch to Studio Server
+      if (ctx.developerId) {
+        webhookDispatcher.dispatch(
+          "purchase.completed",
+          {
+            orderId: ctx.paymentId,
+            gameId: ctx.gameId,
+            gameTitle: ctx.gameTitle,
+            buyerId: ctx.userId,
+            buyerUsername: ctx.username,
+            amount: ctx.cost,
+            royaltyEarned: ctx.devRoyaltyAmount,
+            currency: ctx.currency || "INR",
+            idempotencyKey: options.idempotencyKey,
+            timestamp: new Date().toISOString()
+          },
+          ctx.developerId
+        ).catch(err => console.error("[SAGA WEBHOOK DISPATCH ERROR]:", err));
+      }
 
       return { notificationsDispatched: true };
     },

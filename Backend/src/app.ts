@@ -4,6 +4,8 @@ import type { Request, Response } from "express";
 import { requireToken, type AuthRequest} from "./Middlewares/bouncer.middleware.js";
 import cors from "cors";
 import { traceMiddleware } from "./Telemetry/traceMiddleware.js";
+import { createRateLimiter } from "./RateLimiter/rateLimitMiddleware.js";
+import { RATE_LIMIT_POLICIES } from "./RateLimiter/policies.js";
 const app = express();
 
 app.use(cors({
@@ -20,7 +22,12 @@ import { handleStripeWebhook } from "./Controllers/payment.controller.js";
 app.post("/api/payments/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
 
 app.use(express.json());
-app.use("/api/auth", authRoutes);
+
+// Global Platform Rate Limiter: 120 req / min
+app.use("/api", createRateLimiter(RATE_LIMIT_POLICIES.GLOBAL));
+
+// Tiered Protection: Auth (5 req/min), Search (60 req/min), Saga (10 req/min)
+app.use("/api/auth", createRateLimiter(RATE_LIMIT_POLICIES.AUTH), authRoutes);
 import gameRoutes from "./Routes/game.routes.js";
 app.use("/api/developer/games", gameRoutes);
 
@@ -49,10 +56,13 @@ import friendRoutes from "./Routes/friend.routes.js";
 app.use("/api/friends", friendRoutes);
 
 import sagaRoutes from "./Routes/saga.routes.js";
-app.use("/api/saga", sagaRoutes);
+app.use("/api/saga", createRateLimiter(RATE_LIMIT_POLICIES.SAGA), sagaRoutes);
 
 import searchRoutes from "./Routes/search.routes.js";
-app.use("/api/search", searchRoutes);
+app.use("/api/search", createRateLimiter(RATE_LIMIT_POLICIES.SEARCH), searchRoutes);
+
+import webhookRoutes from "./Routes/webhook.routes.js";
+app.use("/api/webhooks", webhookRoutes);
 
 app.get("/", (_req: Request, res: Response) => {
     res.status(200).send("Health Route working!");

@@ -35,6 +35,7 @@ import AdminCertificationPage from './Pages/Admin/AdminCertificationPage';
 import AdminCatalogPage from './Pages/Admin/AdminCatalogPage';
 import AdminUsersPage from './Pages/Admin/AdminUsersPage';
 import AdminLogsPage from './Pages/Admin/AdminLogsPage';
+import ErrorBoundary from './Components/Common/ErrorBoundary';
 
 const App = () => {
   const { isAuthenticated, user } = useAuth();
@@ -48,63 +49,65 @@ const App = () => {
   };
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to={getDefaultRedirect()} />} />
-      <Route path="/auth" element={!isAuthenticated ? <Auth /> : <Navigate to={getDefaultRedirect()} />} />
-      <Route path="/dashboard" element={<Navigate to={getDefaultRedirect()} />} />
-      <Route path="/developer" element={isAuthenticated ? <DeveloperLayout /> : <Navigate to="/auth" />}>
-        <Route path="dashboard" element={<DeveloperDashboard />} />
-        <Route path="portal" element={<DeveloperPortal />} />
-        <Route path="games/new" element={<CreateGame />} />
-        <Route path="games/:id" element={<GameConfig />} />
-        <Route path="analytics" element={<DeveloperAnalytics />} />
-        <Route path="reviews" element={<DeveloperReviews />} />
-        <Route path="revenue" element={<DeveloperRevenue />} />
-        <Route index element={<Navigate to="dashboard" />} />
-      </Route>
-      <Route path="/store" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
-        <Route index element={<Home />} />
-        <Route path="browse" element={<Home />} />
-        <Route path="library" element={<Library />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="wallet" element={<Wallet />} />
-        <Route path="friends" element={<FriendsPage />} />
-        <Route path="games/:id" element={<GameDetails />} />
-      </Route>
-      {/* Platform Governance & Staff Gateway */}
-      <Route path="/platform/claim-ownership" element={<ClaimOwnership />} />
-      <Route path="/staff/accept-invitation" element={<AcceptStaffInvite />} />
+    <ErrorBoundary fallbackTitle="GameStation Shell Interrupted">
+      <Routes>
+        <Route path="/" element={<Navigate to={getDefaultRedirect()} />} />
+        <Route path="/auth" element={!isAuthenticated ? <Auth /> : <Navigate to={getDefaultRedirect()} />} />
+        <Route path="/dashboard" element={<Navigate to={getDefaultRedirect()} />} />
+        <Route path="/developer" element={isAuthenticated ? <DeveloperLayout /> : <Navigate to="/auth" />}>
+          <Route path="dashboard" element={<DeveloperDashboard />} />
+          <Route path="portal" element={<DeveloperPortal />} />
+          <Route path="games/new" element={<CreateGame />} />
+          <Route path="games/:id" element={<GameConfig />} />
+          <Route path="analytics" element={<DeveloperAnalytics />} />
+          <Route path="reviews" element={<DeveloperReviews />} />
+          <Route path="revenue" element={<DeveloperRevenue />} />
+          <Route index element={<Navigate to="dashboard" />} />
+        </Route>
+        <Route path="/store" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
+          <Route index element={<Home />} />
+          <Route path="browse" element={<Home />} />
+          <Route path="library" element={<Library />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="wallet" element={<Wallet />} />
+          <Route path="friends" element={<FriendsPage />} />
+          <Route path="games/:id" element={<GameDetails />} />
+        </Route>
+        {/* Platform Governance & Staff Gateway */}
+        <Route path="/platform/claim-ownership" element={<ClaimOwnership />} />
+        <Route path="/staff/accept-invitation" element={<AcceptStaffInvite />} />
 
-      {/* Sovereign Governance Console Shell (RED // OWNER) */}
-      <Route path="/platform/governance" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
-        <Route index element={<GovernanceCockpit />} />
-        <Route path="telemetry" element={<TelemetryPage />} />
-        <Route path="emergency" element={<EmergencyConsolePage />} />
-        <Route path="catalog" element={<GameCatalogPage />} />
-        <Route path="treasury" element={<TreasuryLedgerPage />} />
-        <Route path="users" element={<UserRegistryPage />} />
-        <Route path="campaigns" element={<StoreCampaignsPage />} />
-      </Route>
+        {/* Sovereign Governance Console Shell (RED // OWNER) */}
+        <Route path="/platform/governance" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
+          <Route index element={<GovernanceCockpit />} />
+          <Route path="telemetry" element={<TelemetryPage />} />
+          <Route path="emergency" element={<EmergencyConsolePage />} />
+          <Route path="catalog" element={<GameCatalogPage />} />
+          <Route path="treasury" element={<TreasuryLedgerPage />} />
+          <Route path="users" element={<UserRegistryPage />} />
+          <Route path="campaigns" element={<StoreCampaignsPage />} />
+        </Route>
 
-      {/* Admin Operations Suite (BLUE // ADMIN & OWNER) */}
-      <Route path="/admin" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/auth" />}>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboardPage />} />
-        <Route path="certification" element={<AdminCertificationPage />} />
-        <Route path="catalog" element={<AdminCatalogPage />} />
-        <Route path="users" element={<AdminUsersPage />} />
-        <Route path="logs" element={<AdminLogsPage />} />
-      </Route>
+        {/* Admin Operations Suite (BLUE // ADMIN & OWNER) */}
+        <Route path="/admin" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/auth" />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboardPage />} />
+          <Route path="certification" element={<AdminCertificationPage />} />
+          <Route path="catalog" element={<AdminCatalogPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="logs" element={<AdminLogsPage />} />
+        </Route>
 
-      <Route path="/certification" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
-        <Route path="queue" element={<CertificationQueue />} />
-      </Route>
+        <Route path="/certification" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
+          <Route path="queue" element={<CertificationQueue />} />
+        </Route>
 
-      <Route path="/payment" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
-        <Route path="success" element={<PaymentSuccess />} />
-        <Route path="cancelled" element={<PaymentCancelled />} />
-      </Route>
-    </Routes>
+        <Route path="/payment" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
+          <Route path="success" element={<PaymentSuccess />} />
+          <Route path="cancelled" element={<PaymentCancelled />} />
+        </Route>
+      </Routes>
+    </ErrorBoundary>
   );
 };
 
