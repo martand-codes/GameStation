@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../Context/AuthContext';
 import { getGamesAPI, deleteGameAPI } from '../Services/Game.service';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Gamepad2, Settings, ExternalLink, Trash2, Search, Code, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Gamepad2, Settings, ExternalLink, Trash2, Search, Code, CheckCircle, Clock, AlertCircle, MessageSquare } from 'lucide-react';
 import { useToast } from '../Context/ToastContext';
 
 export default function DeveloperPortal() {
@@ -333,6 +333,15 @@ export default function DeveloperPortal() {
                     )}
 
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => navigate(`/developer/reviews?gameId=${game.id}`)}
+                        className="text-neutral-400 hover:text-purple-400 p-1.5 rounded hover:bg-purple-950/20 border border-transparent hover:border-purple-500/30 transition-all text-xs flex items-center gap-1 cursor-pointer"
+                        title="View Community Reviews & Telemetry"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-mono">REVIEWS</span>
+                      </button>
+
                       <button 
                         onClick={() => navigate(`/developer/games/${game.id}`)}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:border-emerald-400 text-xs font-bold transition-all shadow-[0_0_12px_rgba(16,185,129,0.15)]"

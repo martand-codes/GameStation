@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { getPlayerLibraryAPI, type LibraryItem } from '../../Services/Library.service';
 import { recordPlaytimeAPI } from '../../Services/Telemetry.service';
-import GameLauncherModal from '../../Components/Store/GameLauncherModal';
+import { useGameSession } from '../../Context/GameSessionContext';
 import DigitalLicenseModal from '../../Components/Store/DigitalLicenseModal';
 import VersionHistoryModal from '../../Components/Store/VersionHistoryModal';
 import RefundRequestModal from '../../Components/Store/RefundRequestModal';
@@ -27,8 +27,10 @@ export default function Library() {
   const [sortBy, setSortBy] = useState<'recent' | 'title' | 'playtime'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  // Game Session Context
+  const { launchGame } = useGameSession();
+
   // Interactive Modals
-  const [launchingItem, setLaunchingItem] = useState<LibraryItem | null>(null);
   const [licenseItem, setLicenseItem] = useState<LibraryItem | null>(null);
   const [versionItem, setVersionItem] = useState<LibraryItem | null>(null);
   const [refundItem, setRefundItem] = useState<LibraryItem | null>(null);
@@ -353,7 +355,7 @@ export default function Library() {
                   {/* Hover Overlay with Launch Button */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 backdrop-blur-sm transition-opacity flex items-center justify-center gap-3 p-4">
                     <button
-                      onClick={() => setLaunchingItem(item)}
+                      onClick={() => launchGame(item)}
                       className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all transform hover:scale-105"
                     >
                       <Play className="w-4 h-4 fill-white" /> LAUNCH GAME
@@ -389,7 +391,7 @@ export default function Library() {
                     
                     {/* Launch trigger button */}
                     <button
-                      onClick={() => setLaunchingItem(item)}
+                      onClick={() => launchGame(item)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-[#161B22] hover:bg-emerald-600 hover:text-white text-emerald-400 border border-emerald-500/30 rounded font-bold transition-all text-[11px]"
                     >
                       <Play className="w-3 h-3 fill-current" /> Play
@@ -506,7 +508,7 @@ export default function Library() {
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setLaunchingItem(item)}
+                          onClick={() => launchGame(item)}
                           className="px-3 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 rounded font-bold transition-all flex items-center gap-1.5"
                         >
                           <Play className="w-3 h-3 fill-current" /> Launch
@@ -543,12 +545,6 @@ export default function Library() {
       )}
 
       {/* Interactive Modals */}
-      <GameLauncherModal
-        item={launchingItem}
-        onClose={() => setLaunchingItem(null)}
-        onUpdatePlaytime={handleUpdatePlaytime}
-      />
-
       <DigitalLicenseModal
         item={licenseItem}
         onClose={() => setLicenseItem(null)}

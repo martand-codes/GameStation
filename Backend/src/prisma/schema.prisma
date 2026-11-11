@@ -38,6 +38,8 @@ model User {
   // Phase 3 Payment Integration
   payments      Payment[]
   library       UserLibrary[]
+  reviews       GameReview[]
+  reviewVotes   GameReviewVote[]
 
   // Admin & Staff Governance
   reviewedGames         Game[]          @relation("AdminReviewedGames")
@@ -91,6 +93,7 @@ model Game {
   // Phase 3 Payment Integration
   payments             Payment[]
   library              UserLibrary[]
+  reviews              GameReview[]
 
   // Moderation & Review Audit
   rejectionReason      String?
@@ -299,5 +302,63 @@ model GovernanceAuditLog {
   details     String?
   ipAddress   String?
   createdAt   DateTime  @default(now())
+}
+
+// Player Reviews & Deep-Dive Telemetry Matrix
+model GameReview {
+  id                   String    @id @default(uuid())
+  gameId               String
+  game                 Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Core Rating
+  overallRating        Int       // 1 to 5 (1=Broken, 2=Flawed, 3=Meh, 4=Great, 5=Masterpiece)
+  headline             String?   // Concise 1-liner summary
+  content              String    // Detailed player review / feedback
+
+  // Deep-Dive Categorical Sub-scores (Optional 1 to 5 scale)
+  optimization         Int?      // 1-5 Performance & Frame Pacing
+  funFactor            Int?      // 1-5 Gameplay Loop & Enjoyment
+  soundDesign          Int?      // 1-5 Audio, OST, Sound FX
+  visuals              Int?      // 1-5 Graphics, Art Direction
+  stabilityNetcode     Int?      // 1-5 Bugs, Crashes, Online Connectivity
+
+  // Authenticity & Telemetry Snapshot
+  playtimeAtReview     Int       // Exact playtime in seconds when this review was posted
+  isVerifiedOwner      Boolean   @default(true)
+
+  // Community Utility (Phase 2 hooks ready)
+  helpfulCount         Int              @default(0)
+  unhelpfulCount       Int              @default(0)
+  votes                GameReviewVote[]
+
+  // Studio Response (Phase 3 hooks ready)
+  developerResponse    String?
+  developerRespondedAt DateTime?
+
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@unique([userId, gameId])
+  @@index([gameId])
+  @@index([userId])
+}
+
+// Community Review Helpful/Unhelpful Votes
+model GameReviewVote {
+  id        String      @id @default(uuid())
+  reviewId  String
+  review    GameReview  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isHelpful Boolean     // true for Helpful (👍), false for Unhelpful (👎)
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([userId, reviewId])
+  @@index([reviewId])
+  @@index([userId])
 }
 

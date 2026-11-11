@@ -37,6 +37,9 @@ app.use("/api/wallet", walletRoutes);
 import telemetryRoutes from "./Routes/telemetry.routes.js";
 app.use("/api/telemetry", telemetryRoutes);
 
+import reviewRoutes from "./Routes/review.routes.js";
+app.use("/api/reviews", reviewRoutes);
+
 app.get("/", (_req: Request, res: Response) => {
     res.status(200).send("Health Route working!");
 });

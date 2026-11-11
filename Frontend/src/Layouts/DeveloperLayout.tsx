@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { Gamepad2, LayoutDashboard, Settings, BarChart3, Wallet, LogOut, UserCircle, Crown } from 'lucide-react';
+import { Gamepad2, LayoutDashboard, Settings, BarChart3, Wallet, LogOut, UserCircle, Crown, MessageSquare } from 'lucide-react';
 
 export default function DeveloperLayout() {
   const { user, logout } = useAuth();
@@ -37,6 +37,9 @@ export default function DeveloperLayout() {
           </NavLink>
           <NavLink to="/developer/portal" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-lg font-bold transition-colors ${isActive ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-900/50' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white border border-transparent'}`}>
             <Settings className="w-5 h-5" /> Game Studio
+          </NavLink>
+          <NavLink to="/developer/reviews" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-lg font-bold transition-colors ${isActive ? 'bg-purple-900/30 text-purple-400 border border-purple-900/50' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white border border-transparent'}`}>
+            <MessageSquare className="w-5 h-5" /> Player Reviews
           </NavLink>
           <NavLink to="/developer/analytics" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-lg font-bold transition-colors ${isActive ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-900/50' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white border border-transparent'}`}>
             <BarChart3 className="w-5 h-5" /> Analytics

@@ -21,8 +21,15 @@ import {
   Sparkles,
   CheckCircle2,
   Store,
+  Star,
+  MessageSquare,
+  Cpu,
+  Volume2,
+  Eye,
+  Wifi,
 } from 'lucide-react';
 import { getDeveloperDashboardMetricsAPI } from '../Services/Game.service';
+import { getStudioReviewsAPI, type StudioReviewsFeedResponse } from '../Services/Review.service';
 import { useAuth } from '../Context/AuthContext';
 import { useToast } from '../Context/ToastContext';
 import { QADossierModal } from '../Components/Admin/QADossierModal';
@@ -35,13 +42,19 @@ export default function DeveloperDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedStudioId, setSelectedStudioId] = useState<string>('ALL');
   const [metrics, setMetrics] = useState<any>(null);
+  const [reviewsData, setReviewsData] = useState<StudioReviewsFeedResponse | null>(null);
   const [selectedDossierGame, setSelectedDossierGame] = useState<any | null>(null);
 
   const fetchDashboardMetrics = async (studioId?: string) => {
     try {
       setLoading(true);
-      const data = await getDeveloperDashboardMetricsAPI(studioId ?? selectedStudioId);
+      const targetStudioId = studioId ?? selectedStudioId;
+      const [data, reviewsRes] = await Promise.all([
+        getDeveloperDashboardMetricsAPI(targetStudioId),
+        getStudioReviewsAPI(targetStudioId).catch(() => null),
+      ]);
       setMetrics(data);
+      setReviewsData(reviewsRes);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to fetch studio telemetry.');
     } finally {
@@ -159,7 +172,7 @@ export default function DeveloperDashboard() {
       </div>
 
       {/* ── KPI Metrics Grid ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Active Published Titles */}
         <div className="bg-[#0e0e14] border border-neutral-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden group hover:border-emerald-500/40 transition-colors">
           <div className="flex justify-between items-start mb-3">
@@ -272,6 +285,170 @@ export default function DeveloperDashboard() {
           <div className="mt-2.5 pt-2.5 border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-mono text-neutral-400">
             <span className="text-emerald-400">{kpis.publishedTitles} Certified</span>
             <span className="text-neutral-500">{kpis.rejectedTitles} Rejections</span>
+          </div>
+        </div>
+
+        {/* Community Sentiment & Reviews */}
+        <div
+          onClick={() => navigate('/developer/reviews')}
+          className="bg-[#0e0e14] border border-neutral-800/80 rounded-2xl p-5 shadow-lg relative overflow-hidden group hover:border-purple-500/50 hover:bg-neutral-900/30 transition-all cursor-pointer"
+        >
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider block">
+                Player Satisfaction
+              </span>
+              <h3 className="text-xs font-bold text-neutral-300 uppercase font-mono mt-0.5">
+                Review Rating
+              </h3>
+            </div>
+            <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 group-hover:bg-purple-500/20 transition-colors">
+              <Star className="w-4 h-4 fill-purple-400/20 text-purple-400" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-black font-mono text-white flex items-center gap-1.5">
+              {reviewsData?.summary?.averageRating ? reviewsData.summary.averageRating.toFixed(1) : '5.0'}
+              <Star className="w-5 h-5 fill-amber-400 text-amber-400 inline" />
+            </span>
+            <span className="text-xs font-mono text-neutral-500">
+              ({reviewsData?.summary?.totalReviews || 0} reviews)
+            </span>
+          </div>
+          <div className="mt-2.5 pt-2.5 border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-mono">
+            <span className="text-purple-400 flex items-center gap-1">
+              <MessageSquare className="w-3 h-3" />
+              {reviewsData?.summary?.unansweredCount
+                ? `${reviewsData.summary.unansweredCount} pending replies`
+                : 'All answered'}
+            </span>
+            <span className="text-neutral-500 group-hover:text-purple-300 transition-colors">Manage →</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Community Review Radar & Technical Telemetry Strip ────────────────────── */}
+      <div className="bg-[#0e0e14] border border-neutral-800/80 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-neutral-800/80">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+              <Star className="w-5 h-5 fill-purple-400/20" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-extrabold text-white uppercase tracking-wider font-mono">
+                  Community Sentiment & Technical Radar
+                </h2>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  {reviewsData?.summary?.sentiment || 'Positive'}
+                </span>
+              </div>
+              <p className="text-xs text-neutral-400 font-sans mt-0.5">
+                Hardware optimization, gameplay satisfaction, audio, visuals, and stability telemetry gathered from verified players.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/developer/reviews')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(168,85,247,0.25)] shrink-0 self-start md:self-auto cursor-pointer"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Open Reviews Suite</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* 5 Technical Deep Dive Sub-Scores */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-5">
+          {/* Optimization */}
+          <div className="p-3.5 rounded-xl bg-neutral-900/40 border border-neutral-800/60">
+            <div className="flex items-center justify-between text-neutral-400 text-xs mb-1.5 font-mono">
+              <span className="flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-cyan-400" /> Optimization
+              </span>
+              <span className="font-bold text-white">
+                {reviewsData?.summary?.deepDiveAverages?.optimization ? reviewsData.summary.deepDiveAverages.optimization.toFixed(1) : '5.0'}/5
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full"
+                style={{ width: `${((reviewsData?.summary?.deepDiveAverages?.optimization || 5) / 5) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Fun Factor */}
+          <div className="p-3.5 rounded-xl bg-neutral-900/40 border border-neutral-800/60">
+            <div className="flex items-center justify-between text-neutral-400 text-xs mb-1.5 font-mono">
+              <span className="flex items-center gap-1.5">
+                <Gamepad2 className="w-3.5 h-3.5 text-emerald-400" /> Fun Factor
+              </span>
+              <span className="font-bold text-white">
+                {reviewsData?.summary?.deepDiveAverages?.funFactor ? reviewsData.summary.deepDiveAverages.funFactor.toFixed(1) : '5.0'}/5
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                style={{ width: `${((reviewsData?.summary?.deepDiveAverages?.funFactor || 5) / 5) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Sound Design */}
+          <div className="p-3.5 rounded-xl bg-neutral-900/40 border border-neutral-800/60">
+            <div className="flex items-center justify-between text-neutral-400 text-xs mb-1.5 font-mono">
+              <span className="flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 text-amber-400" /> Sound Design
+              </span>
+              <span className="font-bold text-white">
+                {reviewsData?.summary?.deepDiveAverages?.soundDesign ? reviewsData.summary.deepDiveAverages.soundDesign.toFixed(1) : '5.0'}/5
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full"
+                style={{ width: `${((reviewsData?.summary?.deepDiveAverages?.soundDesign || 5) / 5) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Visuals */}
+          <div className="p-3.5 rounded-xl bg-neutral-900/40 border border-neutral-800/60">
+            <div className="flex items-center justify-between text-neutral-400 text-xs mb-1.5 font-mono">
+              <span className="flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-purple-400" /> Visuals & Art
+              </span>
+              <span className="font-bold text-white">
+                {reviewsData?.summary?.deepDiveAverages?.visuals ? reviewsData.summary.deepDiveAverages.visuals.toFixed(1) : '5.0'}/5
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                style={{ width: `${((reviewsData?.summary?.deepDiveAverages?.visuals || 5) / 5) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Netcode */}
+          <div className="p-3.5 rounded-xl bg-neutral-900/40 border border-neutral-800/60">
+            <div className="flex items-center justify-between text-neutral-400 text-xs mb-1.5 font-mono">
+              <span className="flex items-center gap-1.5">
+                <Wifi className="w-3.5 h-3.5 text-rose-400" /> Netcode / Stability
+              </span>
+              <span className="font-bold text-white">
+                {reviewsData?.summary?.deepDiveAverages?.stabilityNetcode ? reviewsData.summary.deepDiveAverages.stabilityNetcode.toFixed(1) : '5.0'}/5
+              </span>
+            </div>
+            <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-rose-500 to-red-500 rounded-full"
+                style={{ width: `${((reviewsData?.summary?.deepDiveAverages?.stabilityNetcode || 5) / 5) * 100}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -421,6 +598,15 @@ export default function DeveloperDashboard() {
                               title="Open Game Studio Config"
                             >
                               <Settings className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Reviews Link */}
+                            <button
+                              onClick={() => navigate(`/developer/reviews?gameId=${game.id}`)}
+                              className="p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 transition-colors cursor-pointer"
+                              title="View Game Reviews & Reply"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
                             </button>
 
                             {/* Storefront View */}

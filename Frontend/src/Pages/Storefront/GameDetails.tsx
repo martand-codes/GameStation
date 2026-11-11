@@ -180,8 +180,7 @@ export default function GameDetails() {
           
           <AiSystemCheck />
 
-
-          <TelemetryReviews />
+          <TelemetryReviews gameId={game.id} gameTitle={game.title} />
         </div>
 
         {/* Sidebar Info */}

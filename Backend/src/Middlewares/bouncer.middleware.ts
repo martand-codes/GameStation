@@ -65,3 +65,37 @@ export const requireToken = (
         });
     }
 };
+
+export const optionalToken = (
+    req: AuthRequest,
+    _res: Response,
+    next: NextFunction
+) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return next();
+
+    const [scheme, token] = authHeader.split(" ");
+    if (scheme !== "Bearer" || !token) return next();
+
+    try {
+        const decodedToken = jwt.verify(
+            token,
+            process.env.JWT_ACCESS_KEY as string
+        );
+
+        if (
+            typeof decodedToken === "object" &&
+            decodedToken !== null &&
+            "userId" in decodedToken &&
+            "role" in decodedToken
+        ) {
+            req.user = {
+                userId: String(decodedToken.userId),
+                role: String(decodedToken.role)
+            };
+        }
+    } catch {
+        // quiet ignore on optional auth check
+    }
+    next();
+};

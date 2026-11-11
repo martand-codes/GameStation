@@ -6,6 +6,7 @@ import DeveloperLayout from './Layouts/DeveloperLayout';
 import DeveloperDashboard from './Pages/DeveloperDashboard';
 import DeveloperAnalytics from './Pages/DeveloperAnalytics';
 import DeveloperRevenue from './Pages/DeveloperRevenue';
+import DeveloperReviews from './Pages/DeveloperReviews';
 import CreateGame from './Pages/CreateGame';
 import { useAuth } from './Context/AuthContext';
 import StorefrontLayout from './Layouts/StorefrontLayout';
@@ -55,6 +56,7 @@ const App = () => {
         <Route path="games/new" element={<CreateGame />} />
         <Route path="games/:id" element={<GameConfig />} />
         <Route path="analytics" element={<DeveloperAnalytics />} />
+        <Route path="reviews" element={<DeveloperReviews />} />
         <Route path="revenue" element={<DeveloperRevenue />} />
         <Route index element={<Navigate to="dashboard" />} />
       </Route>
@@ -78,11 +80,6 @@ const App = () => {
         <Route path="treasury" element={<TreasuryLedgerPage />} />
         <Route path="users" element={<UserRegistryPage />} />
         <Route path="campaigns" element={<StoreCampaignsPage />} />
-      </Route>
-
-      {/* Direct link fallback */}
-      <Route path="/platform/governance/campaigns" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
-        <Route index element={<StoreCampaignsPage />} />
       </Route>
 
       {/* Admin Operations Suite (BLUE // ADMIN & OWNER) */}

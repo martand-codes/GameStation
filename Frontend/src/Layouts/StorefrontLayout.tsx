@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins, Crown, AlertTriangle, Radio, Megaphone, X, ShieldAlert, Shield } from 'lucide-react';
+import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins, Crown, AlertTriangle, Radio, Megaphone, X, ShieldAlert, Shield, Maximize2, Square, Play } from 'lucide-react';
 import { useAuth } from '../Context/AuthContext';
 import { useCart } from '../Context/CartContext';
 import { useWishlist } from '../Context/WishlistContext';
 import { useWallet } from '../Context/WalletContext';
+import { useGameSession } from '../Context/GameSessionContext';
 import { getPublicBroadcastAPI } from '../Services/Governance.service';
 import CartDrawer from '../Components/Store/CartDrawer';
 import WishlistDrawer from '../Components/Store/WishlistDrawer';
+import GameLauncherModal from '../Components/Store/GameLauncherModal';
+import SessionSummaryModal from '../Components/Store/SessionSummaryModal';
 
 export default function StorefrontLayout() {
   const { user, logout } = useAuth();
@@ -29,6 +32,14 @@ export default function StorefrontLayout() {
   const { items } = useCart();
   const { items: wishlistItems } = useWishlist();
   const { balance } = useWallet();
+  const { activeSession, isMinimized, restoreSession, endSession } = useGameSession();
+
+  const formatSessionTime = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs > 0 ? `${hrs.toString().padStart(2, '0')}:` : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     checkBroadcast();
@@ -221,7 +232,34 @@ export default function StorefrontLayout() {
           </div>
 
           {/* Right Panel */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+
+            {/* Active Game Session Minimized HUD */}
+            {activeSession && isMinimized && (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-xs shadow-[0_0_15px_rgba(16,185,129,0.3)] backdrop-blur-md animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span className="text-white font-bold text-xs truncate max-w-[110px] sm:max-w-[150px]">
+                  {activeSession.title}
+                </span>
+                <span className="text-emerald-300 font-mono text-[11px] font-bold tabular-nums">
+                  {formatSessionTime(activeSession.sessionSeconds)}
+                </span>
+                <button
+                  onClick={restoreSession}
+                  className="p-1 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  title="Expand Game Cockpit"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={endSession}
+                  className="p-1 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
+                  title="Stop Process & Save Session"
+                >
+                  <Square className="w-3 h-3 fill-red-400 text-red-400" />
+                </button>
+              </div>
+            )}
             
             {/* Developer Toggle */}
             {(user?.role === 'DEVELOPER' || user?.role === 'ADMIN' || user?.role === 'OWNER') && (
@@ -408,6 +446,8 @@ export default function StorefrontLayout() {
       
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       <WishlistDrawer isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
+      <GameLauncherModal />
+      <SessionSummaryModal />
     </div>
   );
 }

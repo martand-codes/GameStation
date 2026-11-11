@@ -8,6 +8,7 @@ import { CartProvider } from './Context/CartContext'
 import { WishlistProvider } from './Context/WishlistContext'
 import { WalletProvider } from './Context/WalletContext'
 import { ToastProvider } from './Context/ToastContext'
+import { GameSessionProvider } from './Context/GameSessionContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')!).render(
           <CartProvider>
             <AuthProvider>
               <WalletProvider>
-                <App />
+                <GameSessionProvider>
+                  <App />
+                </GameSessionProvider>
               </WalletProvider>
             </AuthProvider>
           </CartProvider>
