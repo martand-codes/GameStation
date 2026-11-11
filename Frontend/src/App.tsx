@@ -28,6 +28,7 @@ import GameCatalogPage from './Pages/Governance/GameCatalogPage';
 import TreasuryLedgerPage from './Pages/Governance/TreasuryLedgerPage';
 import UserRegistryPage from './Pages/Governance/UserRegistryPage';
 import StoreCampaignsPage from './Pages/Governance/StoreCampaignsPage';
+import TelemetryPage from './Pages/Governance/TelemetryPage';
 import AdminLayout from './Layouts/AdminLayout';
 import AdminDashboardPage from './Pages/Admin/AdminDashboardPage';
 import AdminCertificationPage from './Pages/Admin/AdminCertificationPage';
@@ -77,6 +78,7 @@ const App = () => {
       {/* Sovereign Governance Console Shell (RED // OWNER) */}
       <Route path="/platform/governance" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
         <Route index element={<GovernanceCockpit />} />
+        <Route path="telemetry" element={<TelemetryPage />} />
         <Route path="emergency" element={<EmergencyConsolePage />} />
         <Route path="catalog" element={<GameCatalogPage />} />
         <Route path="treasury" element={<TreasuryLedgerPage />} />

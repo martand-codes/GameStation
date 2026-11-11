@@ -21,6 +21,7 @@ import {
   Lock,
   Menu,
   X,
+  Activity,
 } from 'lucide-react';
 import { getEmpireMetricsAPI, createStaffInviteAPI } from '../Services/Governance.service';
 import IssueInviteModal from '../Pages/Governance/components/IssueInviteModal';
@@ -91,6 +92,13 @@ export default function GovernanceLayout() {
       label: 'Overview',
       icon: LayoutDashboard,
       end: true,
+    },
+    {
+      to: '/platform/governance/telemetry',
+      label: 'Observability & APM',
+      icon: Activity,
+      badge: 'Live',
+      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     },
     {
       to: '/certification/queue',

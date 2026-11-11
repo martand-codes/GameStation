@@ -20,21 +20,14 @@ import {
   Activity,
 } from 'lucide-react';
 import { getAdminAuditLogsAPI } from '../../Services/Admin.service';
-import { useAuth } from '../../Context/AuthContext';
 import SagaInspector from '../../Components/Admin/SagaInspector';
-import APMViewer from '../../Components/Admin/APMViewer';
 
 export default function AdminLogsPage() {
-  const { user } = useAuth();
-  const isOwner = user?.role === 'OWNER';
-
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('ALL');
   const [search, setSearch] = useState('');
-  const [activeSection, setActiveSection] = useState<'APM' | 'SAGA' | 'AUDIT'>(
-    isOwner ? 'APM' : 'SAGA'
-  );
+  const [activeSection, setActiveSection] = useState<'SAGA' | 'AUDIT'>('SAGA');
 
   useEffect(() => {
     fetchLogs();
@@ -143,20 +136,6 @@ export default function AdminLogsPage() {
 
       {/* Navigation Switcher Tabs */}
       <div className="flex items-center gap-2 border-b border-blue-900/30 pb-0">
-        {isOwner && (
-          <button
-            onClick={() => setActiveSection('APM')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-mono text-xs font-bold transition-all border-b-2 cursor-pointer ${
-              activeSection === 'APM'
-                ? 'border-emerald-500 text-emerald-300 bg-emerald-500/10'
-                : 'border-transparent text-neutral-400 hover:text-white'
-            }`}
-          >
-            <Activity className="w-4 h-4 text-emerald-400" />
-            <span>Distributed Traces &amp; Flame Graphs</span>
-            <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px]">Sovereign</span>
-          </button>
-        )}
         <button
           onClick={() => setActiveSection('SAGA')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-mono text-xs font-bold transition-all border-b-2 cursor-pointer ${
@@ -183,9 +162,7 @@ export default function AdminLogsPage() {
         </button>
       </div>
 
-      {activeSection === 'APM' ? (
-        <APMViewer />
-      ) : activeSection === 'SAGA' ? (
+      {activeSection === 'SAGA' ? (
         <SagaInspector />
       ) : (
         <>
