@@ -104,6 +104,11 @@ export default function GovernanceLayout() {
       icon: AlertOctagon,
     },
     {
+      to: '/platform/governance/campaigns',
+      label: 'Store Campaigns',
+      icon: Store,
+    },
+    {
       to: '/platform/governance/catalog',
       label: 'Game Catalog',
       icon: Layers,

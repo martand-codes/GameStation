@@ -219,3 +219,14 @@ export const changeUserRoleAPI = async (userId: string, role: 'PLAYER' | 'DEVELO
   const response = await api.post(`/governance/users/${userId}/role`, { role });
   return response.data;
 };
+
+// --- Storefront Merchandising & Hero Event Banner ---
+export const getStorefrontBannerAPI = async () => {
+  const response = await api.get('/store/hero-banner');
+  return response.data?.data;
+};
+
+export const updateStorefrontBannerAPI = async (data: any) => {
+  const response = await api.put('/governance/store-banner', data);
+  return response.data?.data;
+};

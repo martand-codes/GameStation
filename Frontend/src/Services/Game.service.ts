@@ -10,6 +10,13 @@ export const getGamesAPI = async () => {
   return response.data;
 };
 
+export const getDeveloperDashboardMetricsAPI = async (studioId?: string) => {
+  const params: any = {};
+  if (studioId) params.studioId = studioId;
+  const response = await api.get('/developer/games/metrics/dashboard', { params });
+  return response.data;
+};
+
 export const getGameByIdAPI = async (id: string) => {
   const response = await api.get(`/developer/games/${id}`);
   return response.data;

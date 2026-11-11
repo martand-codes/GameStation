@@ -42,6 +42,10 @@ router.post("/system/killswitch", governanceController.toggleSystemKillswitch);
 router.post("/system/purge-sessions", governanceController.purgeAllSessions);
 router.post("/system/broadcast", governanceController.updatePublicBroadcast);
 
+// Sovereign Storefront Merchandising & Hero Event Banner
+router.get("/store-banner", governanceController.getStorefrontBanner);
+router.put("/store-banner", governanceController.updateStorefrontBanner);
+
 // Root Game Moderation (DMCA & Marketplace Overrides)
 router.get("/games/catalog", governanceController.getAllGames);
 router.post("/games/:id/status", governanceController.moderateGameStatus);

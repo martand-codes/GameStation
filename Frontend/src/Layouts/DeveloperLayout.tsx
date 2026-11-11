@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { Gamepad2, LayoutDashboard, Settings, BarChart3, DollarSign, LogOut, UserCircle, Crown } from 'lucide-react';
+import { Gamepad2, LayoutDashboard, Settings, BarChart3, Wallet, LogOut, UserCircle, Crown } from 'lucide-react';
 
 export default function DeveloperLayout() {
   const { user, logout } = useAuth();
@@ -42,7 +42,7 @@ export default function DeveloperLayout() {
             <BarChart3 className="w-5 h-5" /> Analytics
           </NavLink>
           <NavLink to="/developer/revenue" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-lg font-bold transition-colors ${isActive ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-900/50' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white border border-transparent'}`}>
-            <DollarSign className="w-5 h-5" /> Revenue
+            <Wallet className="w-5 h-5" /> Revenue
           </NavLink>
         </nav>
 

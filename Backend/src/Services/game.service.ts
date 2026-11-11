@@ -397,3 +397,197 @@ export const addGameVersion = async (gameId: string, developerId: string, data: 
     },
   });
 };
+
+export const getDeveloperDashboardMetrics = async (
+  userId: string,
+  userRole: string,
+  targetStudioId?: string
+) => {
+  const isElevated = userRole === "OWNER" || userRole === "ADMIN";
+
+  // Determine developer filter
+  let developerFilter: any = {};
+  if (isElevated) {
+    if (targetStudioId && targetStudioId !== "ALL") {
+      developerFilter = { developerId: targetStudioId };
+    } else {
+      // Default elevated view: all games across the platform
+      developerFilter = {};
+    }
+  } else {
+    developerFilter = { developerId: userId };
+  }
+
+  // Fetch studio roster for elevated switcher
+  let studiosList: Array<{ id: string; username: string; gamesCount: number }> = [];
+  if (isElevated) {
+    const devs = await prisma.user.findMany({
+      where: { role: { in: ["DEVELOPER", "OWNER", "ADMIN"] } },
+      select: {
+        id: true,
+        username: true,
+        _count: { select: { games: true } },
+      },
+      orderBy: { username: "asc" },
+    });
+
+    studiosList = devs
+      .filter((d) => d._count.games > 0)
+      .map((d) => ({
+        id: d.id,
+        username: d.username,
+        gamesCount: d._count.games,
+      }));
+  }
+
+  // Fetch games for active filter
+  const games = await prisma.game.findMany({
+    where: developerFilter,
+    include: {
+      developer: {
+        select: { id: true, username: true, email: true },
+      },
+      media: true,
+      pricing: {
+        include: { discounts: true },
+        orderBy: { price: "asc" },
+      },
+      versions: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+      reviewedByAdmin: {
+        select: { id: true, username: true },
+      },
+      payments: {
+        where: { status: "SUCCESS" },
+        select: { amount: true, createdAt: true },
+      },
+      _count: {
+        select: {
+          library: true,
+          payments: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Calculate KPIs
+  const totalTitles = games.length;
+  const publishedTitles = games.filter((g) => g.status === "PUBLISHED").length;
+  const pendingTitles = games.filter((g) => g.status === "PENDING").length;
+  const rejectedTitles = games.filter((g) => g.status === "REJECTED").length;
+  const draftTitles = games.filter((g) => g.status === "DRAFT").length;
+
+  const totalPlayers = games.reduce((acc, g) => acc + (g._count.library || 0), 0);
+
+  let grossRevenue = 0;
+  for (const g of games) {
+    for (const p of g.payments) {
+      grossRevenue += Number(p.amount) || 0;
+    }
+  }
+
+  // 70% standard developer revenue cut
+  const netRevenue = Math.round(grossRevenue * 0.7);
+
+  // Format performance list
+  const performance = games.map((g) => {
+    let gameGross = 0;
+    for (const p of g.payments) {
+      gameGross += Number(p.amount) || 0;
+    }
+    const lowestPrice = g.pricing[0]?.price ?? 0;
+    const latestVersion = g.versions[0]?.version ?? "v1.0.0";
+
+    return {
+      id: g.id,
+      title: g.title,
+      genre: g.genre,
+      status: g.status,
+      developer: g.developer,
+      coverImageUrl: g.media?.coverImageUrl || null,
+      price: lowestPrice,
+      editionsCount: g.pricing.length,
+      version: latestVersion,
+      players: g._count.library || 0,
+      grossRevenue: gameGross,
+      netRevenue: Math.round(gameGross * 0.7),
+      qaNotes: g.qaNotes,
+      reviewedByAdmin: g.reviewedByAdmin,
+      reviewedAt: g.reviewedAt,
+      createdAt: g.createdAt,
+    };
+  });
+
+  // Synthesize chronological activity events
+  const activities: Array<{
+    id: string;
+    type: "CERTIFICATION" | "SUBMISSION" | "VERSION" | "PURCHASE";
+    title: string;
+    description: string;
+    timestamp: Date;
+    gameTitle: string;
+    gameId: string;
+  }> = [];
+
+  for (const g of games) {
+    if (g.status === "PUBLISHED") {
+      activities.push({
+        id: `cert-${g.id}`,
+        type: "CERTIFICATION",
+        title: `${g.title} officially certified`,
+        description: `Passed QA Ring-3 diagnostics and cleared for live storefront by @${g.reviewedByAdmin?.username || "Staff QA"}`,
+        timestamp: g.reviewedAt || g.updatedAt || g.createdAt,
+        gameTitle: g.title,
+        gameId: g.id,
+      });
+    }
+
+    if (g.versions && g.versions[0]) {
+      activities.push({
+        id: `ver-${g.id}`,
+        type: "VERSION",
+        title: `Build ${g.versions[0].version} deployed`,
+        description: `Deployed executable production package for ${g.title}`,
+        timestamp: g.versions[0].createdAt || g.createdAt,
+        gameTitle: g.title,
+        gameId: g.id,
+      });
+    }
+
+    if (g.status === "PENDING") {
+      activities.push({
+        id: `pending-${g.id}`,
+        type: "SUBMISSION",
+        title: `${g.title} submitted for certification`,
+        description: `Enqueued for administrator compliance review`,
+        timestamp: g.updatedAt || g.createdAt,
+        gameTitle: g.title,
+        gameId: g.id,
+      });
+    }
+  }
+
+  // Sort activities chronologically (newest first)
+  activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return {
+    isElevated,
+    activeStudioId: targetStudioId || (isElevated ? "ALL" : userId),
+    studiosList,
+    kpis: {
+      totalTitles,
+      publishedTitles,
+      pendingTitles,
+      rejectedTitles,
+      draftTitles,
+      totalPlayers,
+      grossRevenue,
+      netRevenue,
+    },
+    performance,
+    recentActivity: activities.slice(0, 10),
+  };
+};

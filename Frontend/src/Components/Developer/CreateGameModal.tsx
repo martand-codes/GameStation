@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Gamepad2, Sparkles, Tag, DollarSign, Image as ImageIcon, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Gamepad2, Sparkles, Tag, Wallet, Image as ImageIcon, FileText, CheckCircle2 } from 'lucide-react';
 import { createGameAPI } from '../../Services/Game.service';
 
 interface CreateGameModalProps {
@@ -177,8 +177,8 @@ export default function CreateGameModal({ isOpen, onClose, onSuccess }: CreateGa
           <div className="p-4 bg-[#050505] border border-[#21262D] rounded-lg space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-[#8B949E] uppercase tracking-wider font-bold flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-amber-400" />
-                Standard Edition Base Price
+                <Wallet className="w-3.5 h-3.5 text-amber-400" />
+                Standard Edition Base Price (₹ INR)
               </label>
               <label className="flex items-center gap-2 cursor-pointer text-xs text-emerald-400 font-bold select-none">
                 <input

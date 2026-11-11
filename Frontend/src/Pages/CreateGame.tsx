@@ -5,7 +5,7 @@ import {
   Gamepad2, 
   Sparkles, 
   Tag, 
-  DollarSign, 
+  Wallet, 
   Image as ImageIcon, 
   FileText, 
   CheckCircle2, 
@@ -379,7 +379,7 @@ export default function CreateGame() {
             <div className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-[#21262D] pb-3">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-amber-400" />
+                  <Wallet className="w-4 h-4 text-amber-400" />
                   <h2 className="text-sm font-bold text-white tracking-wider uppercase">Distribution & Base Price</h2>
                 </div>
                 

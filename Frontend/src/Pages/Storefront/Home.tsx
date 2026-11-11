@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import GameCard from '../../Components/GameCard';
+import { StorefrontHeroBanner } from '../../Components/Store/StorefrontHeroBanner';
 import { Terminal, Database, ArrowRight } from 'lucide-react';
 
 interface Game {
@@ -83,34 +84,8 @@ export default function Home() {
   return (
     <div className="space-y-12 font-mono">
       
-      {/* AD / Announcement Banner */}
-      <section>
-        <div className="relative bg-[#0D1117] border border-[#30363D] overflow-hidden rounded-md group">
-          {/* Scanline overlay */}
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJ0cmFuc3BhcmVudCIvPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSIxIiBmaWxsPSJyZ2JhKDAsMCwwLDAuMikiLz4KPC9zdmc+')] z-10 pointer-events-none opacity-30" />
-          
-          <div className="absolute top-0 right-0 p-2 z-20">
-             <span className="text-[10px] text-[#484F58] font-bold border border-[#30363D] px-1.5 py-0.5 uppercase tracking-widest">Sponsored System Broadcast</span>
-          </div>
-
-          <div className="px-8 py-10 md:py-16 flex flex-col items-center justify-center text-center relative z-20">
-            <h1 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 mb-4 tracking-tighter drop-shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-              [GAMESTATION.CORE_UNDER_CONSTRUCTION]
-            </h1>
-            <div className="text-[#8B949E] max-w-2xl text-xs md:text-sm border-l-2 border-emerald-500/50 pl-4 py-1 text-left font-mono">
-              <span className="text-emerald-500 font-bold">root@gamestation:~#</span> 
-              {" "}tail -f /var/log/development.log<br />
-              <span className="animate-pulse">_</span> GameStation is currently under heavy development. The matrix is being rebuilt. Expect layout shifts, new game nodes, and experimental terminal features. Proceed with caution.
-            </div>
-            <button className="mt-8 border border-emerald-500/30 text-emerald-400 bg-emerald-500/5 px-6 py-2.5 text-xs font-bold hover:bg-emerald-500/20 hover:border-emerald-500/80 transition-all uppercase tracking-widest flex items-center gap-2 group shadow-[0_0_10px_rgba(16,185,129,0.1)] hover:shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-               <Terminal className="h-4 w-4 group-hover:animate-pulse" /> Acknowledge Status
-            </button>
-          </div>
-          
-          {/* Decorative background grid/gradients */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-900/10 via-transparent to-transparent z-0" />
-        </div>
-      </section>
+      {/* Storefront Hero Spotlight / Dynamic Campaign Banner */}
+      <StorefrontHeroBanner />
 
       {/* Featured / Hero Section */}
       <section>

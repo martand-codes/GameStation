@@ -15,6 +15,7 @@ export default function DeveloperPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => {
     if (user?.role === 'DEVELOPER' || user?.role === 'ADMIN' || user?.role === 'OWNER') {
@@ -36,16 +37,14 @@ export default function DeveloperPortal() {
     }
   };
 
-  const handleDeleteGame = async (gameId: string, title: string) => {
-    if (!window.confirm(`Are you sure you want to permanently delete "${title}"? This cannot be undone.`)) {
-      return;
-    }
-
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      setDeletingId(gameId);
-      await deleteGameAPI(gameId);
-      setGames(prev => prev.filter(g => g.id !== gameId));
-      toast.success(`Title "${title}" permanently deleted.`);
+      setDeletingId(deleteTarget.id);
+      await deleteGameAPI(deleteTarget.id);
+      setGames(prev => prev.filter(g => g.id !== deleteTarget.id));
+      toast.success(`Title "${deleteTarget.title}" permanently deleted.`);
+      setDeleteTarget(null);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to delete game");
     } finally {
@@ -314,7 +313,7 @@ export default function DeveloperPortal() {
                     {/* Delete button (DRAFT only) */}
                     {game.status === 'DRAFT' ? (
                       <button
-                        onClick={() => handleDeleteGame(game.id, game.title)}
+                        onClick={() => setDeleteTarget({ id: game.id, title: game.title })}
                         disabled={deletingId === game.id}
                         className="text-neutral-500 hover:text-red-400 p-1.5 rounded hover:bg-red-950/20 transition-colors text-xs flex items-center gap-1 disabled:opacity-50"
                         title="Delete Draft"
@@ -347,6 +346,53 @@ export default function DeveloperPortal() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Cyber Confirmation Modal for Deletion */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0e1117] border border-red-500/40 rounded-xl max-w-md w-full p-6 shadow-[0_0_50px_rgba(239,68,68,0.25)] relative overflow-hidden">
+            <div className="flex items-center gap-3 text-red-400 mb-3">
+              <div className="p-2 bg-red-950/50 border border-red-500/30 rounded-lg">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base">Confirm Permanent Deletion</h3>
+                <p className="text-[11px] font-mono text-red-400 uppercase tracking-widest">Irreversible Title Purge</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-neutral-300 font-sans my-4">
+              Are you sure you want to permanently delete <span className="font-mono font-bold text-white">"{deleteTarget.title}"</span>? All draft records, pricing tiers, and media links will be purged from GameStation.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-800">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-lg text-xs font-bold text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={Boolean(deletingId)}
+                className="px-4 py-2 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-white transition-all shadow-[0_0_15px_rgba(239,68,68,0.4)] flex items-center gap-2"
+              >
+                {deletingId ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    PURGING...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    PERMANENTLY PURGE
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

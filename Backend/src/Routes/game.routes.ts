@@ -11,6 +11,7 @@ router.use(requireRole(["DEVELOPER", "ADMIN", "OWNER"]));
 
 // Core Game Routes
 router.post("/", gameController.createGame);
+router.get("/metrics/dashboard", gameController.getDeveloperDashboardMetrics);
 router.get("/", gameController.getGames);
 router.get("/:id", gameController.getGameById);
 router.patch("/:id", gameController.updateGame);

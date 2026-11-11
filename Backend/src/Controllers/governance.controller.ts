@@ -436,3 +436,24 @@ export const changeUserRole = async (req: AuthRequest, res: Response, next: Next
   }
 };
 
+// --- Storefront Merchandising & Hero Event Banner ---
+export const getStorefrontBanner = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const banner = governanceService.getStorefrontBanner();
+    res.status(200).json({ success: true, data: banner });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateStorefrontBanner = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const ownerId = req.user!.userId;
+    const ipAddress = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress;
+    const banner = await governanceService.updateStorefrontBanner(req.body, ownerId, ipAddress);
+    res.status(200).json({ success: true, data: banner });
+  } catch (error) {
+    next(error);
+  }
+};
+

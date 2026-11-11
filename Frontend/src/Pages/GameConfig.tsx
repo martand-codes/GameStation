@@ -1,32 +1,32 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  getGameByIdAPI, 
-  updateGameAPI, 
-  updatePricingAPI, 
+import {
+  getGameByIdAPI,
+  updateGameAPI,
+  updatePricingAPI,
   addEditionAPI,
   deleteEditionAPI,
   addDiscountAPI,
-  updateMediaAPI, 
+  updateMediaAPI,
   updateRequirementsAPI,
   updateTelemetryAPI,
   addVersionAPI,
-  submitGameAPI 
+  submitGameAPI
 } from '../Services/Game.service';
-import { 
-  ArrowLeft, 
-  Save, 
-  Upload, 
-  DollarSign, 
-  Send, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Plus, 
-  Layers, 
-  Cpu, 
-  Clock, 
-  Image as ImageIcon, 
-  Trash2, 
+import {
+  ArrowLeft,
+  Save,
+  Upload,
+  Wallet,
+  Send,
+  CheckCircle2,
+  AlertTriangle,
+  Plus,
+  Layers,
+  Cpu,
+  Clock,
+  Image as ImageIcon,
+  Trash2,
   ExternalLink,
   Sparkles,
   Tag,
@@ -225,7 +225,6 @@ export default function GameConfig() {
   };
 
   const handleDeleteEdition = async (pricingId: string) => {
-    if (!window.confirm("Are you sure you want to remove this pricing edition?")) return;
     try {
       setSaving(true);
       await deleteEditionAPI(id!, pricingId);
@@ -381,7 +380,6 @@ export default function GameConfig() {
   };
 
   const handleSubmitReview = async () => {
-    if (!window.confirm("Submit this title for storefront review? You cannot edit core details while under review.")) return;
     try {
       setSaving(true);
       await submitGameAPI(id!);
@@ -423,7 +421,7 @@ export default function GameConfig() {
 
   return (
     <div className="min-h-full bg-black text-[#C9D1D9] font-mono pb-24">
-      
+
       {/* Sticky Top Bar */}
       <div className="border-b border-neutral-800 bg-[#07090D] px-6 py-4 sticky top-0 z-20 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -440,12 +438,11 @@ export default function GameConfig() {
                 <h1 className="text-sm font-extrabold text-white truncate max-w-[280px] sm:max-w-md">
                   {game.title}
                 </h1>
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${
-                  game.status === 'PUBLISHED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                  game.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 animate-pulse' :
-                  game.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                  'bg-neutral-900 text-neutral-400 border-neutral-700'
-                }`}>
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${game.status === 'PUBLISHED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                    game.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 animate-pulse' :
+                      game.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                        'bg-neutral-900 text-neutral-400 border-neutral-700'
+                  }`}>
                   {game.status}
                 </span>
               </div>
@@ -458,7 +455,7 @@ export default function GameConfig() {
                 {saveSuccessMsg}
               </span>
             )}
-            
+
             <button
               onClick={() => navigate(`/store/games/${game.id}`)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D1117] hover:bg-[#161B22] border border-[#30363D] text-cyan-400 hover:border-cyan-500/40 text-xs font-bold transition-colors"
@@ -472,11 +469,10 @@ export default function GameConfig() {
                 onClick={handleSubmitReview}
                 disabled={saving || !allCriteriaMet}
                 title={!allCriteriaMet ? "Complete all 5 pre-flight checklist items to submit" : "Submit for storefront review"}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md ${
-                  allCriteriaMet
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md ${allCriteriaMet
                     ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
                     : 'bg-neutral-800 text-neutral-500 cursor-not-allowed border border-neutral-700'
-                } disabled:opacity-50`}
+                  } disabled:opacity-50`}
               >
                 <Send className="w-3.5 h-3.5" />
                 {isRejected ? "Re-submit for Review" : "Submit for Review"}
@@ -488,7 +484,7 @@ export default function GameConfig() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-        
+
         {/* Status Notification Callouts */}
         {isPending && (
           <div className="bg-yellow-950/25 border border-yellow-500/40 rounded-xl p-5 flex items-start gap-4 text-yellow-200 shadow-[0_0_20px_rgba(234,179,8,0.1)]">
@@ -576,7 +572,7 @@ export default function GameConfig() {
         <div className="flex items-center gap-2 border-b border-neutral-800 overflow-x-auto pb-2">
           {[
             { id: 'details', label: '1. Core Details', icon: Layers },
-            { id: 'pricing', label: '2. Pricing & Editions', icon: DollarSign },
+            { id: 'pricing', label: '2. Pricing & Editions', icon: Wallet },
             { id: 'media', label: '3. Media Gallery', icon: ImageIcon },
             { id: 'requirements', label: '4. Hardware Specs', icon: Cpu },
             { id: 'telemetry', label: '5. Playtime Telemetry', icon: Clock },
@@ -588,11 +584,10 @@ export default function GameConfig() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all shrink-0 border ${
-                  isActive
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all shrink-0 border ${isActive
                     ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
                     : 'bg-[#0B0E14] text-neutral-400 border-[#21262D] hover:text-white hover:border-neutral-700'
-                }`}
+                  }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-neutral-500'}`} />
                 {tab.label}
@@ -687,7 +682,7 @@ export default function GameConfig() {
             <div className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-6 sm:p-8 space-y-6">
               <div className="border-b border-[#21262D] pb-4">
                 <h2 className="text-base font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-amber-400" /> Configured Game Editions
+                  <Wallet className="w-5 h-5 text-amber-400" /> Configured Game Editions
                 </h2>
                 <p className="text-xs text-neutral-500 mt-1">Multi-tier editions (Standard, Deluxe, Collector's) available for purchase</p>
               </div>

@@ -173,3 +173,17 @@ export const addVersion = async (req: AuthRequest, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const getDeveloperDashboardMetrics = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const studioId = typeof req.query.studioId === "string" ? req.query.studioId : undefined;
+    const metrics = await gameService.getDeveloperDashboardMetrics(
+      req.user!.userId,
+      req.user!.role,
+      studioId
+    );
+    res.status(200).json(metrics);
+  } catch (error) {
+    next(error);
+  }
+};

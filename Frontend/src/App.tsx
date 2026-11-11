@@ -25,6 +25,7 @@ import EmergencyConsolePage from './Pages/Governance/EmergencyConsolePage';
 import GameCatalogPage from './Pages/Governance/GameCatalogPage';
 import TreasuryLedgerPage from './Pages/Governance/TreasuryLedgerPage';
 import UserRegistryPage from './Pages/Governance/UserRegistryPage';
+import StoreCampaignsPage from './Pages/Governance/StoreCampaignsPage';
 import AdminLayout from './Layouts/AdminLayout';
 import AdminDashboardPage from './Pages/Admin/AdminDashboardPage';
 import AdminCertificationPage from './Pages/Admin/AdminCertificationPage';
@@ -76,6 +77,12 @@ const App = () => {
         <Route path="catalog" element={<GameCatalogPage />} />
         <Route path="treasury" element={<TreasuryLedgerPage />} />
         <Route path="users" element={<UserRegistryPage />} />
+        <Route path="campaigns" element={<StoreCampaignsPage />} />
+      </Route>
+
+      {/* Direct link fallback */}
+      <Route path="/platform/governance/campaigns" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
+        <Route index element={<StoreCampaignsPage />} />
       </Route>
 
       {/* Admin Operations Suite (BLUE // ADMIN & OWNER) */}

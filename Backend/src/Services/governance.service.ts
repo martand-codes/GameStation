@@ -531,6 +531,70 @@ const systemControls: SystemControlState = {
   broadcastSeverity: "INFO",
 };
 
+export interface StorefrontBannerState {
+  eventId: string;
+  eventName: string;
+  eventTag: string;
+  description: string;
+  theme: "EMERALD" | "RUBY" | "CYAN" | "AMBER" | "PURPLE";
+  startDate: string;
+  endDate: string;
+  ctaText: string;
+  ctaLink: string;
+  backdropUrl: string;
+  featuredGameId?: string | null;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+let storefrontBanner: StorefrontBannerState = {
+  eventId: "event-genesis-2026",
+  eventName: "CYBER HARVEST // STOREFRONT GENESIS",
+  eventTag: "PLATFORM LAUNCH EVENT",
+  description: "Celebrate the official opening of GameStation. Discover 20 premier titles from 12 iconic developer studios with certified Ring-3 stability.",
+  theme: "EMERALD",
+  startDate: new Date().toISOString(),
+  endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  ctaText: "EXPLORE LINEUP",
+  ctaLink: "/store/browse",
+  backdropUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070",
+  featuredGameId: null,
+  isActive: true,
+  updatedAt: new Date().toISOString(),
+};
+
+export const getStorefrontBanner = () => storefrontBanner;
+
+export const updateStorefrontBanner = async (
+  data: Partial<StorefrontBannerState>,
+  ownerId: string,
+  ipAddress?: string
+) => {
+  const owner = await prisma.user.findUnique({ where: { id: ownerId } });
+  if (!owner || owner.role !== "OWNER") {
+    throw new ForbiddenError("Only Platform Owner can modify storefront event banners.");
+  }
+
+  storefrontBanner = {
+    ...storefrontBanner,
+    ...data,
+    eventId: data.eventName ? `event-${Date.now()}` : storefrontBanner.eventId,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await prisma.governanceAuditLog.create({
+    data: {
+      action: "STOREFRONT_BANNER_UPDATED",
+      actorId: ownerId,
+      actorName: owner.username,
+      details: `Updated storefront banner event to "${storefrontBanner.eventName}" [Theme: ${storefrontBanner.theme}, Active: ${storefrontBanner.isActive}]`,
+      ipAddress: ipAddress || "127.0.0.1",
+    },
+  });
+
+  return storefrontBanner;
+};
+
 const getSovereignQuestions = () => [
   {
     id: 1,
