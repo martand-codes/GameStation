@@ -2,6 +2,7 @@ import { prisma } from "../prisma/db.js";
 import { broadcastPlatformEvent, sendUserNotification } from "../socket.js";
 import type { SagaStep, SagaOptions, SagaExecutionResult } from "./types.js";
 import { BadRequestError, ConflictError } from "../Utils/errors.js";
+import { tracer } from "../Telemetry/Tracer.js";
 
 export class SagaOrchestrator<TContext extends Record<string, any>> {
   private steps: SagaStep<TContext>[] = [];
@@ -28,6 +29,11 @@ export class SagaOrchestrator<TContext extends Record<string, any>> {
   public async execute(initialContext: TContext): Promise<SagaExecutionResult<TContext>> {
     const startTime = Date.now();
     const { sagaType, idempotencyKey, userId, chaosFailStep } = this.options;
+
+    // Dynamically tag active telemetry trace with gameId if present in context
+    if (initialContext && (initialContext as any).gameId) {
+      tracer.setTag('gameId', (initialContext as any).gameId);
+    }
 
     // 1. Check Idempotency Key to avoid duplicate transactions
     const existing = await prisma.sagaInstance.findUnique({
@@ -119,8 +125,13 @@ export class SagaOrchestrator<TContext extends Record<string, any>> {
           throw new Error(`[CHAOS SIMULATION] Injected hardware fault during step: "${step.name}"`);
         }
 
-        // Execute Forward Step Action
-        const output = await step.execute(context);
+        // Execute Forward Step Action with Telemetry Span
+        const output = await tracer.traceAsync(
+          `saga:step:${step.name}`,
+          'SAGA',
+          () => step.execute(context),
+          { sagaId: saga.id, stepIndex: i, sagaType }
+        );
         const stepDuration = Date.now() - stepStart;
 
         // Record Step Success
@@ -221,8 +232,13 @@ export class SagaOrchestrator<TContext extends Record<string, any>> {
             `Compensating step: ${item.step.name}`
           );
 
-          // Run compensation handler
-          await item.step.compensate(context, stepError);
+          // Run compensation handler with Telemetry Span
+          await tracer.traceAsync(
+            `saga:compensate:${item.step.name}`,
+            'SAGA',
+            () => item.step.compensate(context, stepError),
+            { sagaId: saga.id, stepIndex: item.index }
+          );
 
           await prisma.sagaStepLog.update({
             where: { sagaId_stepIndex: { sagaId: saga.id, stepIndex: item.index } },

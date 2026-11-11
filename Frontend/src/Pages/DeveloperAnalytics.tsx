@@ -10,10 +10,12 @@ import {
   PieChart,
   ShieldCheck,
   Sparkles,
+  Activity,
 } from 'lucide-react';
 import { getDeveloperDashboardMetricsAPI } from '../Services/Game.service';
 import { useAuth } from '../Context/AuthContext';
 import { useToast } from '../Context/ToastContext';
+import APMViewer from '../Components/Admin/APMViewer';
 
 export default function DeveloperAnalytics() {
   const { user } = useAuth();
@@ -21,6 +23,7 @@ export default function DeveloperAnalytics() {
   const [loading, setLoading] = useState(true);
   const [selectedStudioId, setSelectedStudioId] = useState<string>('ALL');
   const [metrics, setMetrics] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'TELEMETRY'>('OVERVIEW');
 
   const isElevated = user?.role === 'OWNER' || user?.role === 'ADMIN';
 
@@ -102,8 +105,39 @@ export default function DeveloperAnalytics() {
         </div>
       </div>
 
-      {/* Analytics KPI strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      {/* Navigation Switcher */}
+      <div className="flex items-center gap-2 border-b border-neutral-800 pb-0">
+        <button
+          onClick={() => setActiveTab('OVERVIEW')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-xl font-mono text-xs font-bold transition-all border-b-2 cursor-pointer ${
+            activeTab === 'OVERVIEW'
+              ? 'border-blue-500 text-blue-400 bg-blue-500/10'
+              : 'border-transparent text-neutral-400 hover:text-white'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5" />
+          <span>Audience &amp; Revenue Overview</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('TELEMETRY')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-xl font-mono text-xs font-bold transition-all border-b-2 cursor-pointer ${
+            activeTab === 'TELEMETRY'
+              ? 'border-purple-500 text-purple-400 bg-purple-500/10'
+              : 'border-transparent text-neutral-400 hover:text-white'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5 text-purple-400" />
+          <span>Game Telemetry &amp; Flame Graphs</span>
+          <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[9px]">Scoped</span>
+        </button>
+      </div>
+
+      {activeTab === 'TELEMETRY' ? (
+        <APMViewer />
+      ) : (
+        <>
+          {/* Analytics KPI strip */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="bg-[#0e0e14] border border-neutral-800/80 rounded-2xl p-5 shadow-lg">
           <div className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">
             Total Player Base
@@ -218,6 +252,8 @@ export default function DeveloperAnalytics() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

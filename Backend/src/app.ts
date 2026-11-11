@@ -3,12 +3,17 @@ import authRoutes from "./Routes/auth.routes.js";
 import type { Request, Response } from "express";
 import { requireToken, type AuthRequest} from "./Middlewares/bouncer.middleware.js";
 import cors from "cors";
+import { traceMiddleware } from "./Telemetry/traceMiddleware.js";
 const app = express();
 
 app.use(cors({
     origin: ["http://localhost:5173", "http://localhost:5174"], 
-    credentials: true 
+    credentials: true,
+    exposedHeaders: ["traceparent", "X-Trace-Id"]
 }));
+
+// Automatic W3C Distributed Tracing Middleware (Must run before routes)
+app.use(traceMiddleware);
 
 // Stripe Webhook needs the raw payload for signature verification (MUST be before express.json())
 import { handleStripeWebhook } from "./Controllers/payment.controller.js";

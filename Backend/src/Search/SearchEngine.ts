@@ -2,6 +2,7 @@ import { InvertedIndex, type SearchableDocument } from "./InvertedIndex.js";
 import { Trie } from "./Trie.js";
 import { BM25Scorer } from "./BM25.js";
 import { tokenize } from "./Tokenizer.js";
+import { tracer } from "../Telemetry/Tracer.js";
 
 export interface SearchOptions {
   limit?: number;
@@ -97,61 +98,70 @@ export class SearchEngine {
     }
 
     // 1. Tokenize query
-    const rawTokens = tokenize(cleanQuery, { removeStopWords: false });
-    const processedTokens = tokenize(cleanQuery, { removeStopWords: true });
+    const { rawTokens, processedTokens } = tracer.traceSync("search:tokenize", "SEARCH", () => {
+      return {
+        rawTokens: tokenize(cleanQuery, { removeStopWords: false }),
+        processedTokens: tokenize(cleanQuery, { removeStopWords: true }),
+      };
+    }, { query: cleanQuery });
 
     let finalQueryTokens: string[] = processedTokens.length > 0 ? processedTokens : rawTokens;
     let correctedTerms: string[] = [];
     let hadCorrection = false;
 
     // 2. Prefix Matching & Fuzzy Typo Recovery
-    finalQueryTokens = finalQueryTokens.flatMap((token) => {
-      // A. If exact term exists in vocabulary, use it!
-      if (this.index.getDocumentFrequency(token) > 0) {
+    finalQueryTokens = tracer.traceSync("search:trie_lookup", "SEARCH", () => {
+      return finalQueryTokens.flatMap((token) => {
+        // A. If exact term exists in vocabulary, use it!
+        if (this.index.getDocumentFrequency(token) > 0) {
+          correctedTerms.push(token);
+          return [token];
+        }
+
+        // B. Check PREFIX MATCH FIRST!
+        const prefixMatches = this.trie.autocomplete(token, 3);
+        if (prefixMatches.length > 0) {
+          correctedTerms.push(prefixMatches[0]);
+          return prefixMatches;
+        }
+
+        // C. If NO prefix match exists and fuzzy is enabled, check Levenshtein typo distance
+        if (fuzzy) {
+          const fuzzyCandidates = this.trie.searchFuzzy(token, maxDistance);
+          if (fuzzyCandidates.length > 0 && fuzzyCandidates[0].distance > 0) {
+            hadCorrection = true;
+            const bestMatch = fuzzyCandidates[0].word;
+            correctedTerms.push(bestMatch);
+            return [bestMatch];
+          }
+        }
+
         correctedTerms.push(token);
         return [token];
-      }
-
-      // B. Check PREFIX MATCH FIRST!
-      // If user typed "cyb" or "cybe", autocomplete finds "cyberpunk"
-      const prefixMatches = this.trie.autocomplete(token, 3);
-      if (prefixMatches.length > 0) {
-        correctedTerms.push(prefixMatches[0]);
-        return prefixMatches;
-      }
-
-      // C. If NO prefix match exists and fuzzy is enabled, check Levenshtein typo distance
-      if (fuzzy) {
-        const fuzzyCandidates = this.trie.searchFuzzy(token, maxDistance);
-        if (fuzzyCandidates.length > 0 && fuzzyCandidates[0].distance > 0) {
-          hadCorrection = true;
-          const bestMatch = fuzzyCandidates[0].word;
-          correctedTerms.push(bestMatch);
-          return [bestMatch];
-        }
-      }
-
-      correctedTerms.push(token);
-      return [token];
-    });
+      });
+    }, { initialTokenCount: finalQueryTokens.length });
 
     // 3. Score candidate documents using Okapi BM25
-    const rankedCandidates = this.scorer.score(this.index, finalQueryTokens);
+    const rankedCandidates = tracer.traceSync("search:bm25_ranking", "SEARCH", () => {
+      return this.scorer.score(this.index, finalQueryTokens);
+    }, { finalTokens: finalQueryTokens });
 
     // 4. Build highlighted responses & snippets
-    const results: SearchResultItem[] = rankedCandidates
-      .slice(0, limit)
-      .map((candidate) => {
-        const doc = this.index.getDocument(candidate.docId)!;
-        return {
-          ...doc,
-          highlightedTitle: this.highlightText(doc.title, finalQueryTokens),
-          snippet: this.generateSnippet(doc.description, finalQueryTokens),
-          score: candidate.score,
-          matchedFields: candidate.matchedFields,
-          matchedTerms: candidate.matchedTerms,
-        };
-      });
+    const results: SearchResultItem[] = tracer.traceSync("search:highlight_snippets", "SEARCH", () => {
+      return rankedCandidates
+        .slice(0, limit)
+        .map((candidate) => {
+          const doc = this.index.getDocument(candidate.docId)!;
+          return {
+            ...doc,
+            highlightedTitle: this.highlightText(doc.title, finalQueryTokens),
+            snippet: this.generateSnippet(doc.description, finalQueryTokens),
+            score: candidate.score,
+            matchedFields: candidate.matchedFields,
+            matchedTerms: candidate.matchedTerms,
+          };
+        });
+    }, { candidateCount: rankedCandidates.length });
 
     const latencyMs = Number((performance.now() - startTime).toFixed(3));
 

@@ -38,6 +38,7 @@ import StaffRosterTable from './components/StaffRosterTable';
 import ActiveInvitesTable from './components/ActiveInvitesTable';
 import FlightRecorderLogs from './components/FlightRecorderLogs';
 import IssueInviteModal from './components/IssueInviteModal';
+import APMViewer from '../../Components/Admin/APMViewer';
 
 export default function GovernanceCockpit() {
   const { user } = useAuth();
@@ -51,7 +52,7 @@ export default function GovernanceCockpit() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [banner, setBanner] = useState<any>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'staff' | 'invites' | 'logs'>('staff');
+  const [activeTab, setActiveTab] = useState<'staff' | 'invites' | 'logs' | 'apm'>('staff');
 
   useEffect(() => {
     fetchData();
@@ -115,6 +116,7 @@ export default function GovernanceCockpit() {
     { id: 'staff', label: 'Staff Roster', count: staff.length, icon: Users },
     { id: 'invites', label: 'Active Tokens', count: invites.length, icon: Key },
     { id: 'logs', label: 'Flight Recorder', count: auditLogs.length, icon: Terminal },
+    { id: 'apm', label: 'APM Telemetry & Flame Graphs', count: 'Live', icon: Activity },
   ] as const;
 
   return (
@@ -403,6 +405,7 @@ export default function GovernanceCockpit() {
             />
           )}
           {activeTab === 'logs' && <FlightRecorderLogs key="logs" logs={auditLogs} />}
+          {activeTab === 'apm' && <APMViewer key="apm" />}
         </AnimatePresence>
       </motion.div>
 
