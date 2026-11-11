@@ -17,6 +17,7 @@ import PaymentCancelled from './Pages/Storefront/PaymentCancelled';
 import Library from './Pages/Storefront/Library';
 import Profile from './Pages/Storefront/Profile';
 import Wallet from './Pages/Storefront/Wallet';
+import FriendsPage from './Pages/Storefront/FriendsPage';
 import GovernanceLayout from './Layouts/GovernanceLayout';
 import ClaimOwnership from './Pages/Governance/ClaimOwnership';
 import AcceptStaffInvite from './Pages/Governance/AcceptStaffInvite';
@@ -66,6 +67,7 @@ const App = () => {
         <Route path="library" element={<Library />} />
         <Route path="profile" element={<Profile />} />
         <Route path="wallet" element={<Wallet />} />
+        <Route path="friends" element={<FriendsPage />} />
         <Route path="games/:id" element={<GameDetails />} />
       </Route>
       {/* Platform Governance & Staff Gateway */}

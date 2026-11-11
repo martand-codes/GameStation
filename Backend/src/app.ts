@@ -40,6 +40,15 @@ app.use("/api/telemetry", telemetryRoutes);
 import reviewRoutes from "./Routes/review.routes.js";
 app.use("/api/reviews", reviewRoutes);
 
+import friendRoutes from "./Routes/friend.routes.js";
+app.use("/api/friends", friendRoutes);
+
+import sagaRoutes from "./Routes/saga.routes.js";
+app.use("/api/saga", sagaRoutes);
+
+import searchRoutes from "./Routes/search.routes.js";
+app.use("/api/search", searchRoutes);
+
 app.get("/", (_req: Request, res: Response) => {
     res.status(200).send("Health Route working!");
 });

@@ -15,14 +15,18 @@ import {
   UserX,
   UserCheck,
   Terminal,
+  Cpu,
+  Layers,
 } from 'lucide-react';
 import { getAdminAuditLogsAPI } from '../../Services/Admin.service';
+import SagaInspector from '../../Components/Admin/SagaInspector';
 
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [activeSection, setActiveSection] = useState<'AUDIT' | 'SAGA'>('SAGA');
 
   useEffect(() => {
     fetchLogs();
@@ -101,34 +105,68 @@ export default function AdminLogsPage() {
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 select-none">
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-blue-900/30">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-blue-900/30">
         <div>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-mono uppercase tracking-wider font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-              Flight Recorder
+              Flight Recorder &bull; Distributed Telemetry
             </span>
             <h1 className="text-xl md:text-2xl font-bold font-mono uppercase tracking-wider text-white">
-              Operations Audit Trail
+              Operations &amp; Transactions Inspector
             </h1>
           </div>
           <p className="text-xs text-blue-200/70 mt-1 font-sans">
-            Immutable staff action telemetry, certification directives, moderation receipts, and enforcement history.
+            Distributed saga execution traces, backward compensation audits, and immutable staff action telemetry.
           </p>
         </div>
 
+        {activeSection === 'AUDIT' && (
+          <button
+            onClick={fetchLogs}
+            disabled={loading}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-950/60 border border-blue-800/40 hover:bg-blue-900/40 text-blue-300 font-mono text-xs transition-colors cursor-pointer w-fit"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Sync Recorder
+          </button>
+        )}
+      </div>
+
+      {/* Navigation Switcher Tabs */}
+      <div className="flex items-center gap-2 border-b border-blue-900/30 pb-0">
         <button
-          onClick={fetchLogs}
-          disabled={loading}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-950/60 border border-blue-800/40 hover:bg-blue-900/40 text-blue-300 font-mono text-xs transition-colors cursor-pointer w-fit"
+          onClick={() => setActiveSection('SAGA')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-mono text-xs font-bold transition-all border-b-2 cursor-pointer ${
+            activeSection === 'SAGA'
+              ? 'border-purple-500 text-purple-300 bg-purple-500/10'
+              : 'border-transparent text-neutral-400 hover:text-white'
+          }`}
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Sync Recorder
+          <Cpu className="w-4 h-4 text-purple-400" />
+          <span>Saga Distributed Transactions</span>
+          <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[9px]">ENGINE</span>
+        </button>
+        <button
+          onClick={() => setActiveSection('AUDIT')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-mono text-xs font-bold transition-all border-b-2 cursor-pointer ${
+            activeSection === 'AUDIT'
+              ? 'border-blue-500 text-blue-300 bg-blue-500/10'
+              : 'border-transparent text-neutral-400 hover:text-white'
+          }`}
+        >
+          <Shield className="w-4 h-4 text-blue-400" />
+          <span>Security &amp; Operations Audit Trail</span>
+          <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[9px]">{logs.length}</span>
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="p-4 rounded-xl bg-[#090E1F] border border-blue-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {activeSection === 'SAGA' ? (
+        <SagaInspector />
+      ) : (
+        <>
+          {/* Filter and Search Bar */}
+          <div className="p-4 rounded-xl bg-[#090E1F] border border-blue-900/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Action Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
           {[
@@ -228,6 +266,8 @@ export default function AdminLogsPage() {
           })
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

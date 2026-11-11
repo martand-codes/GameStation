@@ -52,6 +52,15 @@ model User {
   walletBalance         Decimal                         @default(0.00)
   walletTransactions    Wallet[]
 
+  // Friends & Social Network
+  sentFriendships       Friendship[]                    @relation("SentFriendships")
+  receivedFriendships   Friendship[]                    @relation("ReceivedFriendships")
+  sentMessages          DirectMessage[]                 @relation("SentMessages")
+  receivedMessages      DirectMessage[]                 @relation("ReceivedMessages")
+
+  // Saga Distributed Transactions
+  sagas                 SagaInstance[]
+
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt      
 }
@@ -361,4 +370,109 @@ model GameReviewVote {
   @@index([reviewId])
   @@index([userId])
 }
+
+// ── Friends & Live Social Network ─────────────────────────────────────────────
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+model Friendship {
+  id          String           @id @default(uuid())
+  senderId    String
+  sender      User             @relation("SentFriendships", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId  String
+  receiver    User             @relation("ReceivedFriendships", fields: [receiverId], references: [id], onDelete: Cascade)
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+model DirectMessage {
+  id          String    @id @default(uuid())
+  senderId    String
+  sender      User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId  String
+  receiver    User      @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content     String    @db.Text
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([senderId, receiverId])
+  @@index([createdAt])
+}
+
+// ── Saga Distributed Transactions Engine ───────────────────────────────────────
+
+enum SagaStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  COMPENSATING
+  COMPENSATED
+  FAILED
+}
+
+enum SagaStepStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  COMPENSATING
+  COMPENSATED
+  SKIPPED
+}
+
+model SagaInstance {
+  id              String         @id @default(uuid())
+  sagaType        String         // e.g. "GAME_PURCHASE"
+  idempotencyKey  String         @unique
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status          SagaStatus     @default(PENDING)
+  currentStep     Int            @default(0)
+  totalSteps      Int            @default(0)
+  payload         Json           // input parameters (gameId, pricingId, cost, etc.)
+  error           String?        @db.Text
+  durationMs      Int?
+  startedAt       DateTime       @default(now())
+  completedAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  steps           SagaStepLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([sagaType])
+  @@index([idempotencyKey])
+}
+
+model SagaStepLog {
+  id              String         @id @default(uuid())
+  sagaId          String
+  saga            SagaInstance   @relation(fields: [sagaId], references: [id], onDelete: Cascade)
+  stepIndex       Int
+  stepName        String
+  status          SagaStepStatus @default(PENDING)
+  input           Json?
+  output          Json?
+  error           String?        @db.Text
+  durationMs      Int?
+  compensatedAt   DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([sagaId, stepIndex])
+  @@index([sagaId])
+  @@index([status])
+}
+
 

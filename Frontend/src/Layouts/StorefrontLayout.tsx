@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins, Crown, AlertTriangle, Radio, Megaphone, X, ShieldAlert, Shield, Maximize2, Square, Play } from 'lucide-react';
+import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins, Crown, AlertTriangle, Radio, Megaphone, X, ShieldAlert, Shield, Maximize2, Square, Play, Users, Search } from 'lucide-react';
 import { useAuth } from '../Context/AuthContext';
 import { useCart } from '../Context/CartContext';
 import { useWishlist } from '../Context/WishlistContext';
@@ -13,6 +13,7 @@ import GameLauncherModal from '../Components/Store/GameLauncherModal';
 import SessionSummaryModal from '../Components/Store/SessionSummaryModal';
 import LiveActivityTicker from '../Components/Storefront/LiveActivityTicker';
 import NotificationBell from '../Components/Common/NotificationBell';
+import CommandSearchPalette from '../Components/Store/CommandSearchPalette';
 
 export default function StorefrontLayout() {
   const { user, logout } = useAuth();
@@ -20,6 +21,7 @@ export default function StorefrontLayout() {
   const location = useLocation();
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchPaletteOpen, setIsSearchPaletteOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [dismissedBroadcast, setDismissedBroadcast] = useState(false);
@@ -47,6 +49,18 @@ export default function StorefrontLayout() {
     checkBroadcast();
     const interval = setInterval(checkBroadcast, 30000); // 30s probe
     return () => clearInterval(interval);
+  }, []);
+
+  // Global Command+K / Ctrl+K search palette trigger
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const checkBroadcast = async () => {
@@ -84,7 +98,7 @@ export default function StorefrontLayout() {
     } else if (path.includes('/store/wallet')) {
       return [...base, { name: 'config', path: '/store/wallet' }, { name: 'wallet.cfg', path: '/store/wallet', isCurrent: true }];
     } else if (path.includes('/store/friends')) {
-      return [...base, { name: 'config', path: '/store/friends' }, { name: 'network.cfg', path: '/store/friends', isCurrent: true }];
+      return [...base, { name: 'social', path: '/store/friends' }, { name: 'friends.net', path: '/store/friends', isCurrent: true }];
     } else if (path.includes('/store/games/')) {
       return [...base, { name: 'modules', path: '/store' }, { name: 'game_instance.exe', path: path, isCurrent: true }];
     }
@@ -216,20 +230,22 @@ export default function StorefrontLayout() {
             </span>
           </div>
 
-          {/* Engineer Search (Terminal Input style) */}
+          {/* Engineer Search (Terminal Input style & Command Palette Trigger) */}
           <div className="flex-1 max-w-2xl px-12 hidden md:block">
-            <div className={`flex items-center bg-[#0D1117] border ${isSearchActive ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'border-[#30363D]'} rounded-md px-3 py-1.5 transition-all duration-300`}>
-              <span className="text-emerald-500 mr-2 font-bold text-sm">λ</span>
-              <input
-                type="text"
-                className="w-full bg-transparent border-none outline-none text-sm text-[#C9D1D9] placeholder-[#484F58]"
-                placeholder="execute query --target=games"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchActive(true)}
-                onBlur={() => setIsSearchActive(false)}
-              />
-              <span className="animate-pulse w-1.5 h-4 bg-emerald-500 ml-1 opacity-70"></span>
+            <div
+              onClick={() => setIsSearchPaletteOpen(true)}
+              className="flex items-center justify-between bg-[#0D1117] border border-[#30363D] hover:border-emerald-500/50 rounded-md px-3 py-1.5 transition-all duration-300 cursor-pointer shadow-sm group"
+            >
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="text-emerald-500 font-bold text-sm">λ</span>
+                <span className="text-sm text-[#8B949E] group-hover:text-[#C9D1D9] transition-colors truncate">
+                  execute query --target=games
+                </span>
+                <span className="animate-pulse w-1.5 h-4 bg-emerald-500 ml-0.5 opacity-70"></span>
+              </div>
+              <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-neutral-900 border border-neutral-700 text-[10px] text-neutral-400 font-mono">
+                <span>Ctrl+K</span>
+              </div>
             </div>
           </div>
 
@@ -283,6 +299,15 @@ export default function StorefrontLayout() {
               <Coins className="h-3.5 w-3.5 text-emerald-400 group-hover:rotate-180 transition-transform duration-500" />
               <span>₹{balance.toFixed(0)} PTS</span>
             </Link>
+
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => setIsSearchPaletteOpen(true)}
+              className="md:hidden text-[#8B949E] hover:text-white transition-colors p-1"
+              title="Search Games"
+            >
+              <Search className="h-5 w-5" />
+            </button>
 
             <button 
               onClick={() => setIsWishlistOpen(true)}
@@ -398,8 +423,8 @@ export default function StorefrontLayout() {
                   </Link>
                 )}
                 <Link to="/store/friends" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname.includes('/store/friends') ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
-                  <Box className="h-3.5 w-3.5 text-orange-400" />
-                  network.cfg
+                  <Users className="h-3.5 w-3.5 text-purple-400" />
+                  friends.net
                 </Link>
               </div>
             </div>
@@ -454,6 +479,7 @@ export default function StorefrontLayout() {
       <GameLauncherModal />
       <SessionSummaryModal />
       <LiveActivityTicker />
+      <CommandSearchPalette isOpen={isSearchPaletteOpen} onClose={() => setIsSearchPaletteOpen(false)} />
     </div>
   );
 }
