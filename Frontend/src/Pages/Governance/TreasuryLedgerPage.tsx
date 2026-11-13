@@ -8,7 +8,7 @@ export default function TreasuryLedgerPage() {
           Sovereign Treasury &amp; Financial Ledger
         </h1>
         <p className="text-xs text-zinc-400 mt-0.5">
-          30% retained sovereign cut, creator payout reconciliation, and gateway capture logs
+          Dynamic sovereign take-rate cut, creator payout reconciliation, and gateway capture logs
         </p>
       </div>
 

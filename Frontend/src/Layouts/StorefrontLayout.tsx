@@ -90,10 +90,8 @@ export default function StorefrontLayout() {
       { name: 'src', path: '/store', isCurrent: false }
     ];
 
-    if (path === '/store') {
+    if (path === '/store' || path === '/store/browse') {
       return [...base, { name: 'views', path: '/store' }, { name: 'index.tsx', path: '/store', isCurrent: true }];
-    } else if (path.includes('/store/browse')) {
-      return [...base, { name: 'views', path: '/store/browse' }, { name: 'browse.ts', path: '/store/browse', isCurrent: true }];
     } else if (path.includes('/store/library')) {
       return [...base, { name: 'db', path: '/store/library' }, { name: 'library.db', path: '/store/library', isCurrent: true }];
     } else if (path.includes('/store/profile')) {
@@ -467,13 +465,9 @@ export default function StorefrontLayout() {
               </div>
               
               <div className="ml-5 mt-1 border-l border-[#30363D] pl-2 space-y-1">
-                <Link to="/store" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname === '/store' ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
+                <Link to="/store" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname === '/store' || location.pathname === '/store/browse' ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
                   <Box className="h-3.5 w-3.5 text-blue-400" />
                   index.tsx
-                </Link>
-                <Link to="/store/browse" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname.includes('/store/browse') ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
-                  <Box className="h-3.5 w-3.5 text-emerald-400" />
-                  browse.ts
                 </Link>
                 <Link to="/store/library" className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors ${location.pathname.includes('/store/library') ? 'text-white bg-[#161B22] border border-[#30363D]' : 'text-[#8B949E] hover:text-[#C9D1D9] hover:bg-[#0D1117]'}`}>
                   <Box className="h-3.5 w-3.5 text-purple-400" />

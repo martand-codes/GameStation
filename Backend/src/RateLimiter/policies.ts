@@ -4,11 +4,11 @@ import type { RateLimitPolicy } from "./types.js";
  * Pre-configured Rate Limiting Policy Tiers
  */
 export const RATE_LIMIT_POLICIES = {
-    // 1. Auth: 30 attempts per 60 seconds (Protects against automated credential stuffing without locking out humans)
+    // 1. Auth: 50 attempts per 60 seconds (Protects against automated credential stuffing while allowing smooth demoing)
     AUTH: {
         tierName: "AUTH_TIER",
         windowMs: 60_000,
-        maxRequests: 30
+        maxRequests: 50
     },
 
     // 2. Search Engine: 120 queries per 60 seconds

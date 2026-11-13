@@ -71,7 +71,7 @@ export default function StoreCampaignDeck() {
     startDate: new Date().toISOString().slice(0, 16),
     endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
     ctaText: 'EXPLORE CATALOG',
-    ctaLink: '/store/browse',
+    ctaLink: '/store',
     backdropUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070',
     featuredGameId: null,
     isActive: true,
@@ -137,7 +137,7 @@ export default function StoreCampaignDeck() {
         theme: 'EMERALD',
         endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
         ctaText: 'EXPLORE LINEUP',
-        ctaLink: '/store/browse',
+        ctaLink: '/store',
         backdropUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070',
       }));
     } else if (type === 'SUMMER') {
@@ -150,7 +150,7 @@ export default function StoreCampaignDeck() {
         theme: 'AMBER',
         endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
         ctaText: 'GRAB DISCOUNTS',
-        ctaLink: '/store/browse',
+        ctaLink: '/store',
         backdropUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2070',
       }));
     } else if (type === 'STUDIO') {
@@ -163,7 +163,7 @@ export default function StoreCampaignDeck() {
         theme: 'RUBY',
         endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
         ctaText: 'VIEW STUDIO COLLECTION',
-        ctaLink: '/store/browse',
+        ctaLink: '/store',
         backdropUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2070',
       }));
     } else if (type === 'FLASH') {
@@ -176,7 +176,7 @@ export default function StoreCampaignDeck() {
         theme: 'PURPLE',
         endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
         ctaText: 'PLAY INDIES NOW',
-        ctaLink: '/store/browse',
+        ctaLink: '/store',
         backdropUrl: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=2070',
       }));
     }

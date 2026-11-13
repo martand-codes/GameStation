@@ -66,7 +66,7 @@ const App = () => {
         </Route>
         <Route path="/store" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
           <Route index element={<Home />} />
-          <Route path="browse" element={<Home />} />
+          <Route path="browse" element={<Navigate to="/store" replace />} />
           <Route path="library" element={<Library />} />
           <Route path="profile" element={<Profile />} />
           <Route path="wallet" element={<Wallet />} />

@@ -278,29 +278,35 @@ export default function TreasuryLedger() {
         </div>
 
         {/* Dynamic Take-Rate Control Pill */}
-        <div className="flex items-center gap-3 bg-[#0e0e16] p-2.5 px-4 rounded-2xl border border-white/[0.08] text-xs font-mono">
+        <div className="flex items-center gap-3 bg-[#0e0e16] p-2.5 px-4 rounded-2xl border border-white/[0.08] text-xs font-mono shadow-lg">
           <Sliders className="w-4 h-4 text-[#FF1E27]" />
           <span className="text-zinc-400">Platform Take-Rate:</span>
-          <span className="font-bold text-white">{currentSavedRate}%</span>
+          <span className="font-bold text-white text-sm tabular-nums text-[#FF1E27]">{royaltyRate}%</span>
+          {royaltyRate !== currentSavedRate && (
+            <span className="text-[10px] text-zinc-500 font-mono hidden sm:inline">
+              (Live: {currentSavedRate}%)
+            </span>
+          )}
           <input
             type="range"
             min="5"
             max="50"
+            step="1"
             value={royaltyRate}
             onChange={(e) => setRoyaltyRate(Number(e.target.value))}
-            className="w-20 accent-[#FF1E27] cursor-pointer"
+            className="w-24 accent-[#FF1E27] cursor-pointer"
           />
           <button
             type="button"
             onClick={handleSaveRoyaltyRate}
             disabled={savingRate || royaltyRate === currentSavedRate}
-            className={`py-1 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+            className={`py-1.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 ${
               royaltyRate !== currentSavedRate
-                ? 'bg-[#FF1E27] text-white cursor-pointer hover:bg-[#E0151E]'
+                ? 'bg-[#FF1E27] text-white cursor-pointer hover:bg-[#E0151E] shadow-[0_0_15px_rgba(255,30,39,0.5)] animate-pulse'
                 : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
             }`}
           >
-            {saveSuccess ? 'Saved' : savingRate ? 'Saving...' : 'Apply'}
+            {saveSuccess ? 'Saved' : savingRate ? 'Saving...' : `Apply (${royaltyRate}%)`}
           </button>
         </div>
       </div>
@@ -320,22 +326,26 @@ export default function TreasuryLedger() {
 
           <div className="p-4 rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 to-[#0d0d12]">
             <span className="text-[10px] font-mono text-[#FF1E27] font-bold uppercase tracking-wider block">
-              Sovereign Treasury ({currentSavedRate}% Cut)
+              Sovereign Treasury ({royaltyRate}% Cut)
             </span>
             <span className="text-2xl font-black font-mono text-[#FF1E27] mt-1 block drop-shadow-[0_0_12px_rgba(255,30,39,0.4)]">
-              ₹ {totalRoyalties.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ₹ {((totalGross * royaltyRate) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </span>
-            <span className="text-[10px] text-red-400/80 font-sans mt-0.5 block">Net Retained Platform Royalties</span>
+            <span className="text-[10px] text-red-400/80 font-sans mt-0.5 block">
+              {royaltyRate !== currentSavedRate ? `Projected at ${royaltyRate}% take-rate` : 'Net Retained Platform Royalties'}
+            </span>
           </div>
 
           <div className="p-4 rounded-2xl border border-emerald-500/20 bg-[#0d0d12]">
             <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block">
-              Developer Royalties Share ({100 - currentSavedRate}%)
+              Developer Royalties Share ({100 - royaltyRate}%)
             </span>
             <span className="text-2xl font-bold font-mono text-white mt-1 block">
-              ₹ {totalDeveloperPayouts.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ₹ {(totalGross - (totalGross * royaltyRate) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </span>
-            <span className="text-[10px] text-zinc-500 font-sans mt-0.5 block">Creator Disbursed Royalties</span>
+            <span className="text-[10px] text-zinc-500 font-sans mt-0.5 block">
+              {royaltyRate !== currentSavedRate ? `Projected at ${100 - royaltyRate}% payout` : 'Creator Disbursed Royalties'}
+            </span>
           </div>
         </div>
       ) : (
