@@ -930,7 +930,7 @@ export default function AdminUsersPage() {
                       <td className="py-3 px-4 text-white font-bold">
                         <div className="flex items-center gap-1.5">
                           <Wallet className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                          <span>${walletNum.toFixed(2)}</span>
+                          <span>₹{walletNum.toFixed(2)}</span>
                         </div>
                       </td>
 

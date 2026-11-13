@@ -25,11 +25,15 @@ from "../Controllers/auth.controller.js";
 import { requireToken } from "../Middlewares/bouncer.middleware.js";
 import { requireRole } from "../Middlewares/role.middleware.js";
 import { ROLES } from "../Utils/role.validator.js";
+import { createRateLimiter } from "../RateLimiter/rateLimitMiddleware.js";
+import { RATE_LIMIT_POLICIES } from "../RateLimiter/policies.js";
 
 const router = Router();
 
-router.post("/register", validate(registerValidator), registerHandler);
-router.post("/login", validate(loginValidator), loginHandler);
+const authLimiter = createRateLimiter(RATE_LIMIT_POLICIES.AUTH);
+
+router.post("/register", authLimiter, validate(registerValidator), registerHandler);
+router.post("/login", authLimiter, validate(loginValidator), loginHandler);
 router.post("/refresh", refreshHandler);
 router.post("/logout", logoutHandler);
 

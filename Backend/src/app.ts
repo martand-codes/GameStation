@@ -23,11 +23,11 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), han
 
 app.use(express.json());
 
-// Global Platform Rate Limiter: 120 req / min
+// Global Platform Rate Limiter: 500 req / min (Baseline DDoS & abuse barrier)
 app.use("/api", createRateLimiter(RATE_LIMIT_POLICIES.GLOBAL));
 
-// Tiered Protection: Auth (5 req/min), Search (60 req/min), Saga (10 req/min)
-app.use("/api/auth", createRateLimiter(RATE_LIMIT_POLICIES.AUTH), authRoutes);
+// Authentication Routes (Specific POST /login & /register are protected by AUTH_TIER)
+app.use("/api/auth", authRoutes);
 import gameRoutes from "./Routes/game.routes.js";
 app.use("/api/developer/games", gameRoutes);
 
@@ -55,8 +55,9 @@ app.use("/api/reviews", reviewRoutes);
 import friendRoutes from "./Routes/friend.routes.js";
 app.use("/api/friends", friendRoutes);
 
+// Distributed Saga Routes (POST /purchase is protected by SAGA_TIER; read queries are unrestricted)
 import sagaRoutes from "./Routes/saga.routes.js";
-app.use("/api/saga", createRateLimiter(RATE_LIMIT_POLICIES.SAGA), sagaRoutes);
+app.use("/api/saga", sagaRoutes);
 
 import searchRoutes from "./Routes/search.routes.js";
 app.use("/api/search", createRateLimiter(RATE_LIMIT_POLICIES.SEARCH), searchRoutes);

@@ -3,33 +3,33 @@ import type { RateLimitPolicy } from "./types.js";
 /**
  * Pre-configured Rate Limiting Policy Tiers
  */
-export const RATE_LIMIT_POLICIES: Record<string, RateLimitPolicy> = {
-    // 1. Strict Auth: 5 attempts per 60 seconds (Stops brute-force credential stuffing)
+export const RATE_LIMIT_POLICIES = {
+    // 1. Auth: 30 attempts per 60 seconds (Protects against automated credential stuffing without locking out humans)
     AUTH: {
         tierName: "AUTH_TIER",
         windowMs: 60_000,
-        maxRequests: 5
+        maxRequests: 30
     },
 
-    // 2. Search Engine: 60 queries per 60 seconds (Protects In-Memory BM25 & Trie from scraping)
+    // 2. Search Engine: 120 queries per 60 seconds
     SEARCH: {
         tierName: "SEARCH_TIER",
         windowMs: 60_000,
-        maxRequests: 60
+        maxRequests: 120
     },
 
-    // 3. Financial / Saga Transactions: 10 checkouts per 60 seconds (Prevents double-spend races)
+    // 3. Financial / Saga Transactions: 30 checkouts per 60 seconds
     SAGA: {
         tierName: "SAGA_TIER",
         windowMs: 60_000,
-        maxRequests: 10
+        maxRequests: 30
     },
 
-    // 4. Global Platform Baseline: 120 requests per 60 seconds
+    // 4. Global Platform Baseline: 500 requests per 60 seconds (Ensures fast dashboard telemetry without throttling)
     GLOBAL: {
         tierName: "GLOBAL_TIER",
         windowMs: 60_000,
-        maxRequests: 120
+        maxRequests: 500
     }
-};
+} as const satisfies Record<string, RateLimitPolicy>;
 

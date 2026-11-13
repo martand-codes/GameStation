@@ -234,7 +234,9 @@ export default function AdminCatalogPage() {
               ) : (
                 games.map((game) => {
                   const cover = game.media?.coverImageUrl || '/placeholder.png';
-                  const price = game.pricing?.isFree ? 'FREE' : `$${Number(game.pricing?.price || 0).toFixed(2)}`;
+                  const rawPrice = game.pricing?.price ?? (Array.isArray(game.pricing) ? game.pricing[0]?.price : undefined) ?? game.price ?? 0;
+                  const isFree = Boolean(game.isFree || game.pricing?.isFree || (Array.isArray(game.pricing) && game.pricing[0]?.isFree) || Number(rawPrice) === 0);
+                  const price = isFree ? 'FREE' : `₹${Number(rawPrice).toFixed(2)}`;
                   const isPublished = game.status === 'PUBLISHED';
                   const isHidden = game.status === 'HIDDEN';
 
