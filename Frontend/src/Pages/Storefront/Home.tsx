@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { api } from '../../Api/Axios';
 import GameCard from '../../Components/GameCard';
 import { StorefrontHeroBanner } from '../../Components/Store/StorefrontHeroBanner';
 import StoreSkeletonLoader from '../../Components/Store/StoreSkeletonLoader';
@@ -83,7 +84,7 @@ export default function Home() {
         const minScan = !hasCache ? new Promise((resolve) => setTimeout(resolve, 380)) : Promise.resolve();
 
         const [response] = await Promise.all([
-          axios.get('http://localhost:5000/api/store/games', { withCredentials: true }),
+          api.get('/store/games'),
           minScan,
         ]);
 
@@ -491,6 +492,8 @@ export default function Home() {
                               editionsCount,
                               editionName: defaultEdition,
                               tags: game.tags,
+                              rating: (game as any).rating ?? null,
+                              reviewCount: (game as any).reviewCount ?? 0,
                             }}
                           />
                         </motion.div>

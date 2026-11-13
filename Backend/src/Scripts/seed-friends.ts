@@ -34,7 +34,7 @@ async function main() {
   const p8 = userMap.get("Player@08");
   const owner = userMap.get("Martand_Prakhar");
 
-  if (!p1 || !p2 || !p4) {
+  if (!p1 || !p2 || !p3 || !p4 || !p5 || !p8) {
     console.error("❌ Required players not found. Please ensure seed-players.ts has been run.");
     process.exit(1);
   }

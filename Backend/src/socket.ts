@@ -82,6 +82,7 @@ export const initSocketServer = (httpServer: HttpServer): Server => {
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:5000",
+        ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
       ],
       credentials: true,
       methods: ["GET", "POST"],

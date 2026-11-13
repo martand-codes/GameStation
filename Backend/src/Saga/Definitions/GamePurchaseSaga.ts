@@ -243,7 +243,7 @@ export const createGamePurchaseSaga = (options: SagaOptions) => {
           data: {
             userId: ctx.developerId,
             amount: ctx.devRoyaltyAmount,
-            type: "WITHDRAWAL",
+            type: "REFUND",
             description: `[SAGA_ROLLBACK: REVERSAL] Voided 70% Royalty for ${ctx.gameTitle || "game"}`,
             referenceId: `VOID_${options.idempotencyKey}`,
           },

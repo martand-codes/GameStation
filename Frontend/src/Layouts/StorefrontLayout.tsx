@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Terminal, ShoppingCart, LogOut, Code, ChevronRight, Folder, Box, Heart, Coins, Crown, AlertTriangle, Radio, Megaphone, X, ShieldAlert, Shield, Maximize2, Square, Play, Users, Search } from 'lucide-react';
 import { useAuth } from '../Context/AuthContext';
@@ -14,6 +14,7 @@ import SessionSummaryModal from '../Components/Store/SessionSummaryModal';
 import LiveActivityTicker from '../Components/Storefront/LiveActivityTicker';
 import NotificationBell from '../Components/Common/NotificationBell';
 import SearchDropdown from '../Components/Store/SearchDropdown';
+import StoreSkeletonLoader from '../Components/Store/StoreSkeletonLoader';
 
 export default function StorefrontLayout() {
   const { user, logout } = useAuth();
@@ -509,7 +510,9 @@ export default function StorefrontLayout() {
             ))}
           </div>
           <div className="p-6 md:p-10 pb-20 min-h-[calc(100vh-140px)]">
-            <Outlet />
+            <Suspense fallback={<StoreSkeletonLoader />}>
+              <Outlet />
+            </Suspense>
           </div>
           
           {/* Hacker Status Footer */}

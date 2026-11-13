@@ -18,7 +18,7 @@ export const submitReview = async (req: AuthRequest, res: Response, next: NextFu
 
 export const getGameReviews = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const gameId = req.params.gameId;
+    const gameId = String(req.params.gameId);
     const currentUserId = (req as AuthRequest).user?.userId;
     const sortBy = typeof req.query.sortBy === "string" ? req.query.sortBy : "helpful";
     const data = await reviewService.getGameReviews(gameId, currentUserId, sortBy);
@@ -34,7 +34,7 @@ export const getGameReviews = async (req: Request, res: Response, next: NextFunc
 export const voteReview = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.userId;
-    const reviewId = req.params.reviewId;
+    const reviewId = String(req.params.reviewId);
     const isHelpful = req.body.isHelpful === true;
     const result = await reviewService.voteReview(userId, reviewId, isHelpful);
     res.status(200).json(result);
@@ -47,7 +47,7 @@ export const deleteReview = async (req: AuthRequest, res: Response, next: NextFu
   try {
     const userId = req.user!.userId;
     const userRole = req.user!.role;
-    const reviewId = req.params.reviewId;
+    const reviewId = String(req.params.reviewId);
     const result = await reviewService.deleteReview(userId, userRole, reviewId);
     res.status(200).json(result);
   } catch (error) {
@@ -75,7 +75,7 @@ export const replyToReview = async (req: AuthRequest, res: Response, next: NextF
   try {
     const userId = req.user!.userId;
     const userRole = req.user!.role;
-    const reviewId = req.params.reviewId;
+    const reviewId = String(req.params.reviewId);
     const responseText = req.body.response;
     const updated = await reviewService.replyToReview(userId, userRole, reviewId, responseText);
     res.status(200).json({
@@ -92,7 +92,7 @@ export const deleteReply = async (req: AuthRequest, res: Response, next: NextFun
   try {
     const userId = req.user!.userId;
     const userRole = req.user!.role;
-    const reviewId = req.params.reviewId;
+    const reviewId = String(req.params.reviewId);
     const updated = await reviewService.deleteReply(userId, userRole, reviewId);
     res.status(200).json({
       success: true,

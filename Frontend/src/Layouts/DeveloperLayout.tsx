@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 import { Gamepad2, LayoutDashboard, Settings, BarChart3, Wallet, LogOut, UserCircle, Crown, MessageSquare } from 'lucide-react';
 import NotificationBell from '../Components/Common/NotificationBell';
+import DeveloperSkeleton from '../Components/Developer/DeveloperSkeleton';
 
 export default function DeveloperLayout() {
   const { user, logout } = useAuth();
@@ -85,7 +86,9 @@ export default function DeveloperLayout() {
 
         {/* Scrollable Page Content */}
         <main className="flex-1 overflow-y-auto bg-black relative">
-          <Outlet />
+          <Suspense fallback={<DeveloperSkeleton />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

@@ -155,7 +155,7 @@ export const getSagaDetails = async (req: AuthRequest, res: Response): Promise<v
   try {
     const userId = req.user?.userId;
     const userRole = req.user?.role;
-    const { sagaId } = req.params;
+    const sagaId = String(req.params.sagaId);
 
     if (!sagaId) {
       res.status(400).json({ success: false, message: "Saga ID required" });

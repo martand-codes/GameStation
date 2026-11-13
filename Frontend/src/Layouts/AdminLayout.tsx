@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../Context/AuthContext';
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getAdminDashboardMetricsAPI } from '../Services/Admin.service';
 import NotificationBell from '../Components/Common/NotificationBell';
+import AdminSkeleton from '../Components/Admin/AdminSkeleton';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -372,7 +373,9 @@ export default function AdminLayout() {
 
         {/* Dynamic Route Workspace Canvas */}
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          <Suspense fallback={<AdminSkeleton />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

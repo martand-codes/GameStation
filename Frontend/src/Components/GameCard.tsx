@@ -12,7 +12,7 @@ export interface GameCardItem {
   isFree: boolean;
   coverImageUrl: string;
   editionsCount?: number;
-  rating?: number;
+  rating?: number | null;
   reviewCount?: number;
   tags?: string[];
   editionName?: string;
@@ -29,11 +29,8 @@ export default function GameCard({ game }: GameCardProps) {
   const defaultEdition = game.editionName || 'Standard Edition';
   const inWishlist = isInWishlist(game.id, defaultEdition);
 
-  // Deterministic community rating fallback (4.6 - 5.0)
-  const displayRating = (
-    game.rating ||
-    4.5 + (game.title.charCodeAt(0) % 5) * 0.1
-  ).toFixed(1);
+  // Real review validation: only display rating if genuine community reviews exist
+  const hasReviews = typeof game.rating === 'number' && (game.reviewCount ?? 0) > 0;
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -84,11 +81,20 @@ export default function GameCard({ game }: GameCardProps) {
 
         {/* Top Floating Controls: Wishlist Heart & Rating */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-20">
-          {/* Star Rating Badge */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-bold text-amber-400">
-            <Star className="w-3 h-3 fill-current text-amber-400" />
-            <span>{displayRating}</span>
-          </div>
+          {/* Star Rating or NO REVIEWS Badge */}
+          {hasReviews ? (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-black/75 backdrop-blur-md border border-white/10 text-[10px] font-bold text-amber-400">
+              <Star className="w-3 h-3 fill-current text-amber-400" />
+              <span>{game.rating?.toFixed(1)}</span>
+              {game.reviewCount && game.reviewCount > 1 && (
+                <span className="text-[9px] text-zinc-400 font-normal">({game.reviewCount})</span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center px-2 py-1 rounded-lg bg-black/75 backdrop-blur-md border border-white/10 text-[9px] font-mono text-zinc-400 tracking-wider">
+              <span>NO REVIEWS</span>
+            </div>
+          )}
 
           {/* Interactive Wishlist Heart Button */}
           <button

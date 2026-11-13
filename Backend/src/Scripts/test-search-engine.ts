@@ -27,8 +27,8 @@ async function main() {
     tags: g.tags || [],
     description: g.description || "",
     price: g.pricing?.[0] ? Number(g.pricing[0].price) : 0,
-    coverImageUrl: g.media?.coverImageUrl,
-    developerName: g.developer?.username,
+    coverImageUrl: g.media?.coverImageUrl ?? undefined,
+    developerName: g.developer?.username ?? "Studio",
   }));
 
   engine.bulkIndex(searchableDocs);

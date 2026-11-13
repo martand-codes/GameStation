@@ -13,15 +13,40 @@ export const getStoreGames = async (_req: Request, res: Response): Promise<void>
       include: {
         pricing: true,
         media: true,
+        reviews: {
+          select: {
+            overallRating: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
       }
     });
 
+    const gamesWithRatings = games.map((game) => {
+      const reviewCount = game.reviews?.length || 0;
+      const averageRating =
+        reviewCount > 0
+          ? Number(
+              (
+                game.reviews.reduce((acc, r) => acc + r.overallRating, 0) /
+                reviewCount
+              ).toFixed(1)
+            )
+          : null;
+
+      const { reviews, ...gameData } = game;
+      return {
+        ...gameData,
+        rating: averageRating,
+        reviewCount,
+      };
+    });
+
     res.status(200).json({
       success: true,
-      data: games,
+      data: gamesWithRatings,
     });
   } catch (error) {
     console.error("Store Games fetch error:", error);
@@ -38,11 +63,24 @@ export const getStoreGameById = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    const authReq = req as any;
+    const user = authReq.user;
+
+    const whereClause: any = { id };
+    // If not admin or owner, allow published titles OR the developer's own draft/pending titles
+    if (!user || (user.role !== "ADMIN" && user.role !== "OWNER")) {
+      if (user?.userId) {
+        whereClause.OR = [
+          { status: "PUBLISHED" },
+          { developerId: user.userId },
+        ];
+      } else {
+        whereClause.status = "PUBLISHED";
+      }
+    }
+
     const game = await prisma.game.findFirst({
-      where: {
-        id: id,
-        status: "PUBLISHED", // Only allow players to see published games
-      },
+      where: whereClause,
       include: {
         pricing: true,
         media: true,
@@ -53,7 +91,12 @@ export const getStoreGameById = async (req: Request, res: Response): Promise<voi
         },
         developer: {
           select: { username: true }
-        }
+        },
+        reviews: {
+          select: {
+            overallRating: true,
+          },
+        },
       },
     });
 
@@ -62,9 +105,34 @@ export const getStoreGameById = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    const reviewCount = game.reviews?.length || 0;
+    const averageRating =
+      reviewCount > 0
+        ? Number(
+            (
+              game.reviews.reduce((acc, r) => acc + r.overallRating, 0) /
+              reviewCount
+            ).toFixed(1)
+          )
+        : null;
+
+    let sentiment = "NO REVIEWS";
+    if (reviewCount > 0 && averageRating) {
+      if (averageRating >= 4.5) sentiment = "Overwhelmingly Positive";
+      else if (averageRating >= 4.0) sentiment = "Very Positive";
+      else if (averageRating >= 3.0) sentiment = "Mixed";
+      else sentiment = "Mostly Negative";
+    }
+
+    const { reviews, ...gameData } = game;
     res.status(200).json({
       success: true,
-      data: game,
+      data: {
+        ...gameData,
+        rating: averageRating,
+        reviewCount,
+        reviewSentiment: sentiment,
+      },
     });
   } catch (error) {
     console.error("Store Game fetch error:", error);

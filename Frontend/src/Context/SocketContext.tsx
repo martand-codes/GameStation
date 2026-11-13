@@ -66,7 +66,10 @@ const SocketContext = createContext<SocketContextType>({
   notifyGameStop: () => {},
 });
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL =
+  import.meta.env.VITE_WS_URL ||
+  import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') ||
+  'http://localhost:5000';
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();

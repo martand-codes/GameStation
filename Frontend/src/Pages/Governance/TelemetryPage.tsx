@@ -81,10 +81,11 @@ export default function TelemetryPage() {
   const handleTriggerSimulatedTrace = async () => {
     setSimulating(true);
     try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       await Promise.all([
-        fetch('http://localhost:5000/api/search?q=cyberpunk', { credentials: 'include' }),
-        fetch('http://localhost:5000/api/search?q=hades', { credentials: 'include' }),
-        fetch('http://localhost:5000/api/store/games', { credentials: 'include' }),
+        fetch(`${apiBase}/search?q=cyberpunk`, { credentials: 'include' }),
+        fetch(`${apiBase}/search?q=hades`, { credentials: 'include' }),
+        fetch(`${apiBase}/store/games`, { credentials: 'include' }),
       ]);
       await fetchTelemetryData();
     } catch (e) {

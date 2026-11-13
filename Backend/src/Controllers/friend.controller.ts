@@ -52,7 +52,7 @@ export const respondToFriendRequestHandler = async (req: AuthRequest, res: Respo
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { action } = req.body; // 'ACCEPT' | 'DECLINE'
 
     if (action !== "ACCEPT" && action !== "DECLINE") {
@@ -79,7 +79,7 @@ export const removeFriendHandler = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const { id } = req.params;
+    const id = String(req.params.id);
     const result = await removeFriend(userId, id);
     res.status(200).json(result);
   } catch (error: any) {
@@ -97,7 +97,7 @@ export const getDirectMessagesHandler = async (req: AuthRequest, res: Response) 
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const { friendId } = req.params;
+    const friendId = String(req.params.friendId);
     const messages = await getDirectMessages(userId, friendId);
 
     res.status(200).json({ success: true, data: messages });
@@ -116,7 +116,7 @@ export const sendDirectMessageHandler = async (req: AuthRequest, res: Response) 
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const { friendId } = req.params;
+    const friendId = String(req.params.friendId);
     const { content } = req.body;
 
     const message = await sendDirectMessage(userId, friendId, content);

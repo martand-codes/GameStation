@@ -108,7 +108,7 @@ export const getTraceById = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    const { traceId } = req.params;
+    const traceId = String(req.params.traceId);
     const trace = tracer.ringBuffer.getById(traceId);
 
     if (!trace) {

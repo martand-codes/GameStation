@@ -101,7 +101,7 @@ export const deleteSubscription = async (req: AuthRequest, res: Response): Promi
     try {
         const userId = req.user?.userId;
         const role = req.user?.role;
-        const { id } = req.params;
+        const id = String(req.params.id);
 
         const existing = await prisma.webhookSubscription.findUnique({
             where: { id }
@@ -134,7 +134,7 @@ export const sendTestPing = async (req: AuthRequest, res: Response): Promise<voi
     try {
         const userId = req.user?.userId;
         const role = req.user?.role;
-        const { id } = req.params;
+        const id = String(req.params.id);
 
         const sub = await prisma.webhookSubscription.findUnique({ where: { id } });
         if (!sub) {
@@ -235,7 +235,7 @@ export const replayDelivery = async (req: AuthRequest, res: Response): Promise<v
     try {
         const userId = req.user?.userId;
         const role = req.user?.role;
-        const { id } = req.params;
+        const id = String(req.params.id);
 
         const delivery = await prisma.webhookDeliveryLog.findUnique({
             where: { id },
@@ -247,7 +247,7 @@ export const replayDelivery = async (req: AuthRequest, res: Response): Promise<v
             return;
         }
 
-        if (role !== "OWNER" && delivery.subscription.developerId !== userId) {
+        if (role !== "OWNER" && (delivery as any).subscription?.developerId !== userId) {
             res.status(403).json({ success: false, message: "Forbidden." });
             return;
         }

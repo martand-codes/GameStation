@@ -337,13 +337,26 @@ export default function DeveloperDashboard() {
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black font-mono text-white flex items-center gap-1.5">
-              {reviewsData?.summary?.averageRating ? reviewsData.summary.averageRating.toFixed(1) : '5.0'}
-              <Star className="w-5 h-5 fill-amber-400 text-amber-400 inline" />
-            </span>
-            <span className="text-xs font-mono text-neutral-500">
-              ({reviewsData?.summary?.totalReviews || 0} reviews)
-            </span>
+            {(reviewsData?.summary?.totalReviews || 0) > 0 ? (
+              <>
+                <span className="text-3xl font-black font-mono text-white flex items-center gap-1.5">
+                  {reviewsData?.summary?.averageRating ? reviewsData.summary.averageRating.toFixed(1) : '0.0'}
+                  <Star className="w-5 h-5 fill-amber-400 text-amber-400 inline" />
+                </span>
+                <span className="text-xs font-mono text-neutral-500">
+                  ({reviewsData?.summary?.totalReviews} reviews)
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-xl font-bold font-mono text-neutral-400">
+                  No Reviews
+                </span>
+                <span className="text-xs font-mono text-neutral-500">
+                  (0 reviews)
+                </span>
+              </>
+            )}
           </div>
           <div className="mt-2.5 pt-2.5 border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-mono">
             <span className="text-purple-400 flex items-center gap-1">
@@ -369,8 +382,12 @@ export default function DeveloperDashboard() {
                 <h2 className="text-base font-extrabold text-white uppercase tracking-wider font-mono">
                   Community Sentiment & Technical Radar
                 </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  {reviewsData?.summary?.sentiment || 'Positive'}
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                  (reviewsData?.summary?.totalReviews || 0) > 0
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+                }`}>
+                  {reviewsData?.summary?.totalReviews ? (reviewsData.summary.sentiment || 'Positive') : 'NO REVIEWS'}
                 </span>
               </div>
               <p className="text-xs text-neutral-400 font-sans mt-0.5">

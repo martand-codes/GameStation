@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Cpu, HardDrive, ShieldAlert, Disc } from 'lucide-react';
+import { Download, Cpu, HardDrive, ShieldAlert, Disc, Terminal } from 'lucide-react';
+import { api } from '../../Api/Axios';
 import SystemRequirements from '../../Components/Store/SystemRequirements';
 import AiSystemCheck from '../../Components/Store/AiSystemCheck';
 import TelemetryReviews from '../../Components/Store/TelemetryReviews';
@@ -23,6 +23,9 @@ interface Game {
   developer: { username: string };
   versions: { version: string; releaseNotes: string; isLatest: boolean; releaseDate: string }[];
   telemetry?: { mainStoryHours: number; mainExtrasHours: number; completionistHours: number };
+  rating?: number | null;
+  reviewCount?: number;
+  reviewSentiment?: string;
 }
 
 export default function GameDetails() {
@@ -43,7 +46,7 @@ export default function GameDetails() {
         const minScan = new Promise((resolve) => setTimeout(resolve, 380));
 
         const [response] = await Promise.all([
-          axios.get(`http://localhost:5000/api/store/games/${id}`, { withCredentials: true }),
+          api.get(`/store/games/${id}`),
           minScan,
         ]);
 
@@ -142,9 +145,15 @@ export default function GameDetails() {
           <p className="text-sm text-[#C9D1D9] line-clamp-4">{game.description}</p>
           
           <div className="text-xs space-y-1 mt-2">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-[#556772]">RECENT REVIEWS:</span>
-              <span className="text-emerald-500">Very Positive</span>
+              {(game.reviewCount ?? 0) > 0 ? (
+                <span className="text-emerald-400 font-bold">
+                  {game.reviewSentiment || 'Positive'} ({game.reviewCount})
+                </span>
+              ) : (
+                <span className="text-zinc-500 font-mono text-[11px]">No User Reviews</span>
+              )}
             </div>
             <div className="flex justify-between">
               <span className="text-[#556772]">IN-GAME RIGHT NOW:</span>

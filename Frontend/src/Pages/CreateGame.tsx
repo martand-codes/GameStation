@@ -597,8 +597,8 @@ export default function CreateGame() {
                             coverImageUrl.trim() ||
                             'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=800',
                           editionsCount: 1,
-                          rating: 5.0,
-                          reviewCount: 1,
+                          rating: null,
+                          reviewCount: 0,
                           tags: tags.length > 0 ? tags : ['DirectX 12', 'Ray Tracing'],
                           editionName: 'Standard Edition',
                         }}

@@ -622,6 +622,7 @@ export const deleteReply = async (userId: string, userRole: string, reviewId: st
       developerResponse: null,
       developerRespondedAt: null,
     },
+    include: { game: true },
   });
 
   try {
@@ -630,14 +631,14 @@ export const deleteReply = async (userId: string, userRole: string, reviewId: st
       username: updated.game.title,
       gameTitle: updated.game.title,
       gameId: updated.game.id,
-      details: "Official studio response published",
+      details: "Official studio response retracted",
     });
 
     if (review.userId) {
       sendUserNotification(review.userId, {
         type: "DEVELOPER_REPLY",
-        title: `Developer Replied to Your Review`,
-        message: `The developer of "${updated.game.title}" officially responded: "${response.trim().slice(0, 80)}..."`,
+        title: `Developer Response Removed`,
+        message: `The developer response on "${updated.game.title}" was retracted.`,
         targetUrl: `/store/games/${updated.game.id}`,
       });
     }

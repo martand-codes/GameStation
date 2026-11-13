@@ -1,41 +1,59 @@
+import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Auth from './Pages/Auth';
-import DeveloperPortal from './Pages/DeveloperPortal';
-import GameConfig from './Pages/GameConfig';
-import DeveloperLayout from './Layouts/DeveloperLayout';
-import DeveloperDashboard from './Pages/DeveloperDashboard';
-import DeveloperAnalytics from './Pages/DeveloperAnalytics';
-import DeveloperRevenue from './Pages/DeveloperRevenue';
-import DeveloperReviews from './Pages/DeveloperReviews';
-import CreateGame from './Pages/CreateGame';
 import { useAuth } from './Context/AuthContext';
-import StorefrontLayout from './Layouts/StorefrontLayout';
-import Home from './Pages/Storefront/Home';
-import GameDetails from './Pages/Storefront/GameDetails';
-import PaymentSuccess from './Pages/Storefront/PaymentSuccess';
-import PaymentCancelled from './Pages/Storefront/PaymentCancelled';
-import Library from './Pages/Storefront/Library';
-import Profile from './Pages/Storefront/Profile';
-import Wallet from './Pages/Storefront/Wallet';
-import FriendsPage from './Pages/Storefront/FriendsPage';
-import GovernanceLayout from './Layouts/GovernanceLayout';
-import ClaimOwnership from './Pages/Governance/ClaimOwnership';
-import AcceptStaffInvite from './Pages/Governance/AcceptStaffInvite';
-import GovernanceCockpit from './Pages/Governance/GovernanceCockpit';
-import CertificationQueue from './Pages/Governance/CertificationQueue';
-import EmergencyConsolePage from './Pages/Governance/EmergencyConsolePage';
-import GameCatalogPage from './Pages/Governance/GameCatalogPage';
-import TreasuryLedgerPage from './Pages/Governance/TreasuryLedgerPage';
-import UserRegistryPage from './Pages/Governance/UserRegistryPage';
-import StoreCampaignsPage from './Pages/Governance/StoreCampaignsPage';
-import TelemetryPage from './Pages/Governance/TelemetryPage';
-import AdminLayout from './Layouts/AdminLayout';
-import AdminDashboardPage from './Pages/Admin/AdminDashboardPage';
-import AdminCertificationPage from './Pages/Admin/AdminCertificationPage';
-import AdminCatalogPage from './Pages/Admin/AdminCatalogPage';
-import AdminUsersPage from './Pages/Admin/AdminUsersPage';
-import AdminLogsPage from './Pages/Admin/AdminLogsPage';
 import ErrorBoundary from './Components/Common/ErrorBoundary';
+
+// Laser-themed Skeleton Loaders
+import StoreSkeletonLoader from './Components/Store/StoreSkeletonLoader';
+import DeveloperSkeleton from './Components/Developer/DeveloperSkeleton';
+import AdminSkeleton from './Components/Admin/AdminSkeleton';
+import GovernanceSkeleton from './Components/Governance/GovernanceSkeleton';
+import CyberSkeleton from './Components/Common/CyberSkeleton';
+
+// Auth & Staff (Lazy-loaded)
+const Auth = lazy(() => import('./Pages/Auth'));
+const ClaimOwnership = lazy(() => import('./Pages/Governance/ClaimOwnership'));
+const AcceptStaffInvite = lazy(() => import('./Pages/Governance/AcceptStaffInvite'));
+
+// Storefront Suite (Lazy-loaded)
+const StorefrontLayout = lazy(() => import('./Layouts/StorefrontLayout'));
+const Home = lazy(() => import('./Pages/Storefront/Home'));
+const GameDetails = lazy(() => import('./Pages/Storefront/GameDetails'));
+const Library = lazy(() => import('./Pages/Storefront/Library'));
+const Profile = lazy(() => import('./Pages/Storefront/Profile'));
+const Wallet = lazy(() => import('./Pages/Storefront/Wallet'));
+const FriendsPage = lazy(() => import('./Pages/Storefront/FriendsPage'));
+const PaymentSuccess = lazy(() => import('./Pages/Storefront/PaymentSuccess'));
+const PaymentCancelled = lazy(() => import('./Pages/Storefront/PaymentCancelled'));
+
+// Developer Studio Suite (Lazy-loaded)
+const DeveloperLayout = lazy(() => import('./Layouts/DeveloperLayout'));
+const DeveloperDashboard = lazy(() => import('./Pages/DeveloperDashboard'));
+const DeveloperPortal = lazy(() => import('./Pages/DeveloperPortal'));
+const CreateGame = lazy(() => import('./Pages/CreateGame'));
+const GameConfig = lazy(() => import('./Pages/GameConfig'));
+const DeveloperAnalytics = lazy(() => import('./Pages/DeveloperAnalytics'));
+const DeveloperReviews = lazy(() => import('./Pages/DeveloperReviews'));
+const DeveloperRevenue = lazy(() => import('./Pages/DeveloperRevenue'));
+
+// Admin Operations Suite (Lazy-loaded)
+const AdminLayout = lazy(() => import('./Layouts/AdminLayout'));
+const AdminDashboardPage = lazy(() => import('./Pages/Admin/AdminDashboardPage'));
+const AdminCertificationPage = lazy(() => import('./Pages/Admin/AdminCertificationPage'));
+const AdminCatalogPage = lazy(() => import('./Pages/Admin/AdminCatalogPage'));
+const AdminUsersPage = lazy(() => import('./Pages/Admin/AdminUsersPage'));
+const AdminLogsPage = lazy(() => import('./Pages/Admin/AdminLogsPage'));
+
+// Platform Sovereign Governance Suite (Lazy-loaded)
+const GovernanceLayout = lazy(() => import('./Layouts/GovernanceLayout'));
+const GovernanceCockpit = lazy(() => import('./Pages/Governance/GovernanceCockpit'));
+const CertificationQueue = lazy(() => import('./Pages/Governance/CertificationQueue'));
+const EmergencyConsolePage = lazy(() => import('./Pages/Governance/EmergencyConsolePage'));
+const GameCatalogPage = lazy(() => import('./Pages/Governance/GameCatalogPage'));
+const TreasuryLedgerPage = lazy(() => import('./Pages/Governance/TreasuryLedgerPage'));
+const UserRegistryPage = lazy(() => import('./Pages/Governance/UserRegistryPage'));
+const StoreCampaignsPage = lazy(() => import('./Pages/Governance/StoreCampaignsPage'));
+const TelemetryPage = lazy(() => import('./Pages/Governance/TelemetryPage'));
 
 const App = () => {
   const { isAuthenticated, user } = useAuth();
@@ -52,9 +70,32 @@ const App = () => {
     <ErrorBoundary fallbackTitle="GameStation Shell Interrupted">
       <Routes>
         <Route path="/" element={<Navigate to={getDefaultRedirect()} />} />
-        <Route path="/auth" element={!isAuthenticated ? <Auth /> : <Navigate to={getDefaultRedirect()} />} />
+
+        {/* ── AUTHENTICATION ────────────────────────────────────────────── */}
+        <Route
+          path="/auth"
+          element={
+            <Suspense fallback={<CyberSkeleton role="CITIZEN" layout="dashboard" />}>
+              {!isAuthenticated ? <Auth /> : <Navigate to={getDefaultRedirect()} />}
+            </Suspense>
+          }
+        />
+
         <Route path="/dashboard" element={<Navigate to={getDefaultRedirect()} />} />
-        <Route path="/developer" element={isAuthenticated ? <DeveloperLayout /> : <Navigate to="/auth" />}>
+
+        {/* ── DEVELOPER STUDIO SUITE (VIOLET // DEVELOPER) ────────────────── */}
+        <Route
+          path="/developer"
+          element={
+            isAuthenticated ? (
+              <Suspense fallback={<DeveloperSkeleton />}>
+                <DeveloperLayout />
+              </Suspense>
+            ) : (
+              <Navigate to="/auth" />
+            )
+          }
+        >
           <Route path="dashboard" element={<DeveloperDashboard />} />
           <Route path="portal" element={<DeveloperPortal />} />
           <Route path="games/new" element={<CreateGame />} />
@@ -64,7 +105,20 @@ const App = () => {
           <Route path="revenue" element={<DeveloperRevenue />} />
           <Route index element={<Navigate to="dashboard" />} />
         </Route>
-        <Route path="/store" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
+
+        {/* ── STOREFRONT SUITE (EMERALD // PLAYER) ───────────────────────── */}
+        <Route
+          path="/store"
+          element={
+            isAuthenticated ? (
+              <Suspense fallback={<StoreSkeletonLoader />}>
+                <StorefrontLayout />
+              </Suspense>
+            ) : (
+              <Navigate to="/auth" />
+            )
+          }
+        >
           <Route index element={<Home />} />
           <Route path="browse" element={<Navigate to="/store" replace />} />
           <Route path="library" element={<Library />} />
@@ -73,12 +127,38 @@ const App = () => {
           <Route path="friends" element={<FriendsPage />} />
           <Route path="games/:id" element={<GameDetails />} />
         </Route>
-        {/* Platform Governance & Staff Gateway */}
-        <Route path="/platform/claim-ownership" element={<ClaimOwnership />} />
-        <Route path="/staff/accept-invitation" element={<AcceptStaffInvite />} />
 
-        {/* Sovereign Governance Console Shell (RED // OWNER) */}
-        <Route path="/platform/governance" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
+        {/* ── PLATFORM GOVERNANCE & STAFF GATEWAY ───────────────────────── */}
+        <Route
+          path="/platform/claim-ownership"
+          element={
+            <Suspense fallback={<CyberSkeleton role="OWNER" layout="dashboard" />}>
+              <ClaimOwnership />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/staff/accept-invitation"
+          element={
+            <Suspense fallback={<CyberSkeleton role="ADMIN" layout="dashboard" />}>
+              <AcceptStaffInvite />
+            </Suspense>
+          }
+        />
+
+        {/* ── SOVEREIGN GOVERNANCE CONSOLE SHELL (CRIMSON // OWNER) ──────── */}
+        <Route
+          path="/platform/governance"
+          element={
+            isAuthenticated ? (
+              <Suspense fallback={<GovernanceSkeleton />}>
+                <GovernanceLayout />
+              </Suspense>
+            ) : (
+              <Navigate to="/auth" />
+            )
+          }
+        >
           <Route index element={<GovernanceCockpit />} />
           <Route path="telemetry" element={<TelemetryPage />} />
           <Route path="emergency" element={<EmergencyConsolePage />} />
@@ -88,8 +168,19 @@ const App = () => {
           <Route path="campaigns" element={<StoreCampaignsPage />} />
         </Route>
 
-        {/* Admin Operations Suite (BLUE // ADMIN & OWNER) */}
-        <Route path="/admin" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/auth" />}>
+        {/* ── ADMIN OPERATIONS SUITE (CYAN // ADMIN & OWNER) ─────────────── */}
+        <Route
+          path="/admin"
+          element={
+            isAuthenticated ? (
+              <Suspense fallback={<AdminSkeleton />}>
+                <AdminLayout />
+              </Suspense>
+            ) : (
+              <Navigate to="/auth" />
+            )
+          }
+        >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="certification" element={<AdminCertificationPage />} />
@@ -98,11 +189,33 @@ const App = () => {
           <Route path="logs" element={<AdminLogsPage />} />
         </Route>
 
-        <Route path="/certification" element={isAuthenticated ? <GovernanceLayout /> : <Navigate to="/auth" />}>
+        <Route
+          path="/certification"
+          element={
+            isAuthenticated ? (
+              <Suspense fallback={<GovernanceSkeleton />}>
+                <GovernanceLayout />
+              </Suspense>
+            ) : (
+              <Navigate to="/auth" />
+            )
+          }
+        >
           <Route path="queue" element={<CertificationQueue />} />
         </Route>
 
-        <Route path="/payment" element={isAuthenticated ? <StorefrontLayout /> : <Navigate to="/auth" />}>
+        <Route
+          path="/payment"
+          element={
+            isAuthenticated ? (
+              <Suspense fallback={<StoreSkeletonLoader />}>
+                <StorefrontLayout />
+              </Suspense>
+            ) : (
+              <Navigate to="/auth" />
+            )
+          }
+        >
           <Route path="success" element={<PaymentSuccess />} />
           <Route path="cancelled" element={<PaymentCancelled />} />
         </Route>

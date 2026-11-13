@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../Context/AuthContext';
@@ -30,6 +30,7 @@ import SovereignGreeterGate from '../Pages/Governance/components/SovereignGreete
 import DemoSandboxMatrixModal from '../Pages/Governance/components/DemoSandboxMatrixModal';
 import NotificationBell from '../Components/Common/NotificationBell';
 import ErrorBoundary from '../Components/Common/ErrorBoundary';
+import GovernanceSkeleton from '../Components/Governance/GovernanceSkeleton';
 
 export default function GovernanceLayout() {
   const { user, logout } = useAuth();
@@ -415,7 +416,9 @@ export default function GovernanceLayout() {
         {/* Dynamic Page Outlet */}
         <main className="flex-1 overflow-y-auto">
           <ErrorBoundary fallbackTitle="Governance Console Subsystem Interrupted">
-            <Outlet />
+            <Suspense fallback={<GovernanceSkeleton />}>
+              <Outlet />
+            </Suspense>
           </ErrorBoundary>
         </main>
       </div>

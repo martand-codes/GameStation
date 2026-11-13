@@ -177,7 +177,7 @@ export default function AdminDashboardPage() {
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={fetchMetrics}
+            onClick={() => fetchMetrics()}
             className="flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-mono font-medium text-slate-300 hover:text-white bg-[#0D152B] hover:bg-[#131F3F] border border-blue-900/40 transition-all cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${loading ? 'animate-spin' : ''}`} />

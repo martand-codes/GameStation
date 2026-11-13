@@ -69,9 +69,10 @@ export default function APMViewer() {
   const handleTriggerSimulatedTrace = async () => {
     setSimulating(true);
     try {
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       // Fire live search queries against the backend to generate fresh traces
-      await fetch('http://localhost:5000/api/search?q=cyberpunk', { credentials: 'include' });
-      await fetch('http://localhost:5000/api/store/games', { credentials: 'include' });
+      await fetch(`${apiBase}/search?q=cyberpunk`, { credentials: 'include' });
+      await fetch(`${apiBase}/store/games`, { credentials: 'include' });
       await fetchTelemetryData();
     } catch (e) {
       console.error('Simulation error:', e);
