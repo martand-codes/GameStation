@@ -38,6 +38,22 @@ app.use(express.json());
 // Global Platform Rate Limiter: 500 req / min (Baseline DDoS & abuse barrier)
 app.use("/api", createRateLimiter(RATE_LIMIT_POLICIES.GLOBAL));
 
+// Root Healthcheck & Status Endpoint
+app.get(["/", "/api", "/api/health"], (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: "ONLINE",
+    platform: "GameStation Core API Engine",
+    version: "2.4.0",
+    timestamp: new Date().toISOString(),
+    uptime: `${Math.floor(process.uptime())}s`,
+    endpoints: {
+      store: "/api/store/games",
+      heroBanner: "/api/store/hero-banner",
+      telemetry: "/api/telemetry/stats"
+    }
+  });
+});
+
 // Authentication Routes (Specific POST /login & /register are protected by AUTH_TIER)
 app.use("/api/auth", authRoutes);
 import gameRoutes from "./Routes/game.routes.js";
