@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   RefreshCw,
   FileKey,
+  Zap,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../../Context/AuthContext';
 import {
@@ -26,6 +28,7 @@ interface SovereignGreeterGateProps {
 
 export default function SovereignGreeterGate({ onUnlocked }: SovereignGreeterGateProps) {
   const { user } = useAuth();
+  const isDemoUser = user?.username?.toLowerCase() === 'demo_owner';
 
   // Challenge state
   const [challenge, setChallenge] = useState<{
@@ -69,10 +72,36 @@ export default function SovereignGreeterGate({ onUnlocked }: SovereignGreeterGat
     }
   };
 
+  const handleDemoBypass = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await verifySecurityChallengeAPI({
+        questionIndex: challenge?.questionIndex || 1,
+        answer: 'DEMO_ACCESS',
+      });
+
+      setIsSuccess(true);
+      sessionStorage.setItem('gamestation_sovereign_session_cleared', 'true');
+      setTimeout(() => {
+        onUnlocked();
+      }, 750);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to authenticate demo access.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isBreakGlassMode) {
       handleBreakGlass();
+      return;
+    }
+
+    if (isDemoUser) {
+      await handleDemoBypass();
       return;
     }
 
@@ -246,6 +275,37 @@ export default function SovereignGreeterGate({ onUnlocked }: SovereignGreeterGat
           </h1>
         </div>
 
+        {/* ── DEMO ACCESS FAST-PASS CARD ─────────────────────────────────── */}
+        {isDemoUser && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/35 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0_0_30px_rgba(245,158,11,0.15)] relative overflow-hidden">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                <Zap className="w-5 h-5 fill-current" />
+              </div>
+              <div>
+                <div className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                  <span>Public Reviewer Sandbox Session</span>
+                  <span className="text-[9px] bg-amber-950 text-amber-400 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                    1-CLICK ACCESS
+                  </span>
+                </div>
+                <div className="text-[11px] text-zinc-300 font-sans mt-0.5 leading-snug">
+                  Personal challenge questions are private to root owner. Click below to bypass and enter the demo enclave.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleDemoBypass}
+              disabled={loading || isSuccess}
+              className="py-3 px-5 rounded-xl font-mono text-xs font-bold uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all cursor-pointer shrink-0 active:scale-95 flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4 fill-current" />
+              <span>Get Demo Access</span>
+            </button>
+          </div>
+        )}
+
         {/* ── 3. CHALLENGE CARD DISPLAY ───────────────────────────────────── */}
         {!isBreakGlassMode ? (
           <div className="p-5 sm:p-6 rounded-2xl bg-[#12121a] border border-white/[0.07] space-y-3 relative overflow-hidden">
@@ -381,20 +441,30 @@ export default function SovereignGreeterGate({ onUnlocked }: SovereignGreeterGat
               className={`w-full py-4 px-6 rounded-2xl text-xs sm:text-sm font-mono font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-3 shadow-xl cursor-pointer ${
                 isSuccess
                   ? 'bg-emerald-600 text-white shadow-[0_0_25px_rgba(16,185,129,0.5)]'
+                  : isDemoUser
+                  ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-[0_0_25px_rgba(245,158,11,0.35)] active:scale-[0.98]'
                   : 'bg-[#FF1E27] hover:bg-[#E0151E] text-white shadow-[0_0_25px_rgba(255,30,39,0.35)] active:scale-[0.98]'
               }`}
             >
               {isSuccess ? (
                 <>
                   <ShieldCheck className="w-5 h-5" />
-                  <span>Clearance Confirmed · Welcome, Chief!</span>
+                  <span>
+                    {isDemoUser
+                      ? 'Clearance Confirmed · Welcome to Demo Enclave!'
+                      : 'Clearance Confirmed · Welcome, Chief!'}
+                  </span>
                 </>
               ) : loading ? (
                 <span>Verifying Cryptographic Vector...</span>
               ) : (
                 <>
                   <span>
-                    {isBreakGlassMode ? 'Execute Break-Glass Root Override' : 'Authorize Yourself, Chief!'}
+                    {isDemoUser
+                      ? 'Get Demo Access & Enter Enclave'
+                      : isBreakGlassMode
+                      ? 'Execute Break-Glass Root Override'
+                      : 'Authorize Yourself, Chief!'}
                   </span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </>

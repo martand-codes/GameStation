@@ -33,28 +33,39 @@ import { getStudioReviewsAPI, type StudioReviewsFeedResponse } from '../Services
 import { useAuth } from '../Context/AuthContext';
 import { useToast } from '../Context/ToastContext';
 import { QADossierModal } from '../Components/Admin/QADossierModal';
+import DeveloperSkeleton from '../Components/Developer/DeveloperSkeleton';
+import { getCachedData, setCachedData } from '../Utils/sessionCache';
 
 export default function DeveloperDashboard() {
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
+  const cachedDev = getCachedData<any>('developer_dashboard_metrics');
+  const [loading, setLoading] = useState(() => !cachedDev);
   const [selectedStudioId, setSelectedStudioId] = useState<string>('ALL');
-  const [metrics, setMetrics] = useState<any>(null);
-  const [reviewsData, setReviewsData] = useState<StudioReviewsFeedResponse | null>(null);
+  const [metrics, setMetrics] = useState<any>(() => cachedDev?.metrics || null);
+  const [reviewsData, setReviewsData] = useState<StudioReviewsFeedResponse | null>(() => cachedDev?.reviewsData || null);
   const [selectedDossierGame, setSelectedDossierGame] = useState<any | null>(null);
 
   const fetchDashboardMetrics = async (studioId?: string) => {
     try {
-      setLoading(true);
+      const cacheKey = `developer_dashboard_metrics_${studioId ?? selectedStudioId}`;
+      const hasCache = Boolean(getCachedData(cacheKey));
+      if (!hasCache) {
+        setLoading(true);
+      }
       const targetStudioId = studioId ?? selectedStudioId;
+      const minScan = !hasCache ? new Promise((resolve) => setTimeout(resolve, 380)) : Promise.resolve();
       const [data, reviewsRes] = await Promise.all([
         getDeveloperDashboardMetricsAPI(targetStudioId),
         getStudioReviewsAPI(targetStudioId).catch(() => null),
+        minScan,
       ]);
       setMetrics(data);
       setReviewsData(reviewsRes);
+      setCachedData(cacheKey, { metrics: data, reviewsData: reviewsRes }, 120_000);
+      setCachedData('developer_dashboard_metrics', { metrics: data, reviewsData: reviewsRes }, 120_000);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to fetch studio telemetry.');
     } finally {
@@ -85,8 +96,27 @@ export default function DeveloperDashboard() {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 select-none font-sans">
-      {/* ── Top Header Strip ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-neutral-800">
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="dev-skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, filter: 'blur(6px)' }}
+            transition={{ duration: 0.22 }}
+          >
+            <DeveloperSkeleton />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="dev-content"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="space-y-8"
+          >
+            {/* ── Top Header Strip ──────────────────────────────────────────────────────── */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-neutral-800">
         <div>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono uppercase tracking-wider font-semibold">
@@ -688,6 +718,9 @@ export default function DeveloperDashboard() {
           </div>
         </div>
       </div>
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {/* QA Certification Dossier Modal */}
       <QADossierModal

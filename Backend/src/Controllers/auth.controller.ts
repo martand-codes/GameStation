@@ -1,26 +1,27 @@
-import type {Request, Response} from "express";
+import type { Request, Response } from "express";
 import type { AuthRequest } from "../Middlewares/bouncer.middleware.js";
-import {registerUser, verifyUser, createSession, logoutSession} from "../Services/auth.service.js";
-import {refreshSession} from "../Services/auth.service.js";
+import { registerUser, verifyUser, createSession, logoutSession } from "../Services/auth.service.js";
+import { refreshSession } from "../Services/auth.service.js";
 import { prisma } from "../prisma/db.js";
 import { ConflictError, UnauthorizedError } from "../Utils/errors.js";
+import { isProtectedDemoAccount } from "../Config/securityGuards.js";
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 
 export const registerHandler = async (req: Request, res: Response): Promise<void> => {
     try {
         const newUser = await registerUser(req.body);
-        const {accessToken, refreshToken} = await createSession(newUser.id, newUser.role, req.headers["user-agent"]);
+        const { accessToken, refreshToken } = await createSession(newUser.id, newUser.role, req.headers["user-agent"]);
 
         res.status(201).json({
             success: true,
             message: "User Registered Successfully!",
-            tokens: {accessToken, refreshToken},
+            tokens: { accessToken, refreshToken },
             user: newUser
         });
 
     } catch (error: unknown) {
-        if(error instanceof ConflictError) {
+        if (error instanceof ConflictError) {
             res.status(409).json({
                 success: false,
                 message: error.message
@@ -40,7 +41,7 @@ export const registerHandler = async (req: Request, res: Response): Promise<void
 export const loginHandler = async (req: Request, res: Response): Promise<void> => {
     try {
         const user = await verifyUser(req.body);
-        const {accessToken, refreshToken} = await createSession(user.id, user.role, req.headers["user-agent"]);
+        const { accessToken, refreshToken } = await createSession(user.id, user.role, req.headers["user-agent"]);
 
         res.status(200).json({
             success: true,
@@ -56,13 +57,13 @@ export const loginHandler = async (req: Request, res: Response): Promise<void> =
         console.error("Login Error:", error);
         res.status(500).json({ success: false, message: "Internal server error" });
     }
-    
+
 };
 
 export const refreshHandler = async (req: Request, res: Response): Promise<void> => {
     try {
         const { refreshToken } = req.body;
-        if(!refreshToken) {
+        if (!refreshToken) {
             res.status(400).json({
                 success: false,
                 message: "Refresh token is Required!"
@@ -70,17 +71,17 @@ export const refreshHandler = async (req: Request, res: Response): Promise<void>
             return;
         }
 
-        const {accessToken, refreshToken: newRefreshToken} = await refreshSession(refreshToken, req.headers["user-agent"]);
+        const { accessToken, refreshToken: newRefreshToken } = await refreshSession(refreshToken, req.headers["user-agent"]);
 
-        res.status(200).json ({
+        res.status(200).json({
             success: true,
             message: "Welcome Chief!",
-            tokens:{
+            tokens: {
                 accessToken,
                 refreshToken: newRefreshToken
-            } 
+            }
         });
-    } catch(error: unknown) {
+    } catch (error: unknown) {
         console.error("Refresh Error: ", error);
 
         res.status(401).json({
@@ -92,20 +93,20 @@ export const refreshHandler = async (req: Request, res: Response): Promise<void>
 };
 
 export const testPlayerHandler = async (_req: Request, res: Response): Promise<void> => {
-    res.status(200).json({ 
-        success: true, 
-        message: "You are logged in! Welcome to the main floor." 
+    res.status(200).json({
+        success: true,
+        message: "You are logged in! Welcome to the main floor."
     });
 };
 
 export const testAdminHandler = async (_req: Request, res: Response): Promise<void> => {
-    res.status(200).json({ 
-        success: true, 
-        message: "Welcome to the Manager's Office, Boss!" 
+    res.status(200).json({
+        success: true,
+        message: "Welcome to the Manager's Office, Boss!"
     });
 };
 
-export const testDevHandler = async (_req: Request, res: Response): Promise <void> => {
+export const testDevHandler = async (_req: Request, res: Response): Promise<void> => {
     res.status(200).json({
         success: true,
         message: "Welcome Dev, Please make optimized Games"
@@ -114,9 +115,9 @@ export const testDevHandler = async (_req: Request, res: Response): Promise <voi
 
 export const logoutHandler = async (req: Request, res: Response): Promise<void> => {
     try {
-        const {refreshToken} = req.body;
+        const { refreshToken } = req.body;
 
-        if(!refreshToken) {
+        if (!refreshToken) {
             res.status(400).json({
                 success: false,
                 message: "Refresh Token is required!"
@@ -129,14 +130,14 @@ export const logoutHandler = async (req: Request, res: Response): Promise<void> 
             success: true,
             message: "Good Bye Chief"
         });
-    } catch(error: unknown) {
+    } catch (error: unknown) {
         console.error("Logout Error: ", error);
         res.status(500).json({
             success: false,
             message: "Server Error"
         });
     }
-    
+
 };
 
 // !! Temporary Backdoor For making Admin
@@ -262,6 +263,15 @@ export const updateProfileHandler = async (req: AuthRequest, res: Response): Pro
             return;
         }
 
+        const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+        if (currentUser && isProtectedDemoAccount(currentUser.username)) {
+            res.status(403).json({
+                success: false,
+                message: "DEMO SECURITY GUARD: Public demo personas cannot modify credentials or profile information. Real owner account is unaffected."
+            });
+            return;
+        }
+
         const { username, email, role } = req.body;
         const dataToUpdate: any = {};
         if (username && typeof username === "string") {
@@ -309,6 +319,15 @@ export const changePasswordHandler = async (req: AuthRequest, res: Response): Pr
         const userId = req.user?.userId;
         if (!userId) {
             res.status(401).json({ success: false, message: "Unauthorized access" });
+            return;
+        }
+
+        const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+        if (currentUser && isProtectedDemoAccount(currentUser.username)) {
+            res.status(403).json({
+                success: false,
+                message: "DEMO SECURITY GUARD: Public demo personas cannot change passwords. The real owner account is unaffected."
+            });
             return;
         }
 

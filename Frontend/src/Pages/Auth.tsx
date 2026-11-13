@@ -15,12 +15,17 @@ import {
   CheckCircle2, 
   ArrowRight,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  CreditCard,
+  Radio,
+  RefreshCcw,
+  Cpu
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { loginAPI, registerAPI } from "../Services/Auth.service";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../Context/AuthContext";
+import FloatingGamingBackground from "../Components/Common/FloatingGamingBackground";
 
 interface PersonaConfig {
   role: 'OWNER' | 'ADMIN' | 'DEVELOPER' | 'PLAYER';
@@ -41,20 +46,20 @@ interface PersonaConfig {
 const DEMO_PERSONAS: PersonaConfig[] = [
   {
     role: 'OWNER',
-    name: 'Martand_Prakhar',
-    pass: 'adgjmptw@01@25LPA',
+    name: 'Demo_Owner',
+    pass: 'DemoOwner@2026',
     title: 'Sovereign Owner',
-    badge: 'ROOT SOVEREIGNTY',
+    badge: 'SANDBOX ROOT',
     badgeColor: 'bg-red-500/20 text-red-400 border-red-500/30',
     accentColor: 'text-red-400',
     glowColor: 'rgba(239, 68, 68, 0.25)',
     btnClass: 'hover:border-red-500 hover:bg-red-500/10 text-red-300',
     icon: Crown,
     tagline: 'Platform Root & APM Observability',
-    description: 'Master root access to inspect real-time platform telemetry, distributed flame graphs, and financial ledgers.',
+    description: 'Sandbox master access to explore real-time telemetry, distributed flame graphs, financial ledgers, and emergency switches.',
     features: [
       'W3C OpenTelemetry APM & Flame Graph Engine',
-      'Emergency Break-Glass Killswitches (Maintenance & Freeze)',
+      'Emergency Break-Glass Killswitches (Self-Healing)',
       'Platform Treasury Ledger & Disbursal Authorization',
       'Live Storefront Campaign Engine & Dynamic Banners'
     ]
@@ -196,15 +201,11 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-[#05060A] text-white flex flex-col justify-center items-center p-4 sm:p-6 lg:p-10 relative overflow-x-hidden selection:bg-red-500/30 selection:text-white">
-      {/* Dynamic Cybernetic Ambient Glows */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-15%] left-[20%] w-[600px] h-[600px] rounded-full bg-red-600/10 blur-[180px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-15%] right-[20%] w-[600px] h-[600px] rounded-full bg-blue-600/10 blur-[180px] animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30" />
-      </div>
+      {/* Dynamic Cybernetic Gaming Ambient Background */}
+      <FloatingGamingBackground />
 
       <div className="w-full max-w-xl z-10 flex flex-col items-center">
-        {/* Branding & Sub-Header */}
+        {/* Branding & Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] mb-4 backdrop-blur-md shadow-lg">
             <span className="relative flex h-2 w-2">
@@ -219,9 +220,6 @@ export default function Auth() {
           <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-white flex items-center justify-center gap-1">
             <span className="text-red-500">GAME</span>STATION
           </h1>
-          <p className="text-xs font-mono text-zinc-400 uppercase tracking-[0.3em] mt-1.5">
-            Distributed Core // Terminal Gateway
-          </p>
         </div>
 
         {/* ============================================================== */}
@@ -499,25 +497,110 @@ export default function Auth() {
             </button>
           </div>
 
-          {/* Sovereign Claim Emergency Link */}
+          {/* Sovereign Genesis Authority Link */}
           <div className="mt-6 pt-3.5 border-t border-white/[0.06] text-center">
             <a
               href="/platform/claim-ownership"
-              className="text-[11px] font-mono text-zinc-500 hover:text-red-400 transition-colors inline-flex items-center gap-1.5"
+              className="text-[11px] font-mono text-zinc-400 hover:text-red-400 transition-colors inline-flex items-center gap-1.5"
             >
-              <Crown className="w-3 h-3 text-red-500/70" />
-              <span>Claim Sovereign Root Ownership</span>
-              <ArrowRight className="w-3 h-3" />
+              <Crown className="w-3.5 h-3.5 text-red-500/80" />
+              <span>Genesis Root Authority &bull; Anchored to <span className="text-white font-bold">@Martand_Prakhar</span></span>
+              <ArrowRight className="w-3 h-3 text-zinc-600" />
             </a>
           </div>
         </div>
 
+        {/* ── DISTRIBUTED INFRASTRUCTURE HIGHLIGHTS ────────────────── */}
+        <div className="mt-7 w-full max-w-xl mx-auto">
+          <div className="text-center mb-3">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 font-bold">
+              Distributed Core Architecture &bull; Engineering Stack
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-left">
+            {/* 1. Stripe Payment Gateway */}
+            <div className="p-3 rounded-xl bg-[#080B12]/90 border border-white/[0.07] hover:border-emerald-500/30 transition-all group shadow-lg">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                  <CreditCard className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[9px] text-emerald-400/90 font-bold px-1.5 py-0.2 rounded bg-emerald-950/60 border border-emerald-500/30">
+                  STRIPE
+                </span>
+              </div>
+              <div className="text-[11px] font-bold text-zinc-200 truncate group-hover:text-emerald-300 transition-colors">
+                Payment Gateway
+              </div>
+              <div className="text-[9px] text-zinc-400 font-sans mt-0.5 leading-tight">
+                PCI-DSS Level-1 captures with HMAC-SHA256 webhooks
+              </div>
+            </div>
+
+            {/* 2. Sliding-Window Rate Limiter */}
+            <div className="p-3 rounded-xl bg-[#080B12]/90 border border-white/[0.07] hover:border-cyan-500/30 transition-all group shadow-lg">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[9px] text-cyan-400/90 font-bold px-1.5 py-0.2 rounded bg-cyan-950/60 border border-cyan-500/30">
+                  SHIELD
+                </span>
+              </div>
+              <div className="text-[11px] font-bold text-zinc-200 truncate group-hover:text-cyan-300 transition-colors">
+                Rate Limiter
+              </div>
+              <div className="text-[9px] text-zinc-400 font-sans mt-0.5 leading-tight">
+                Sliding-Window log ring buffer (50 req/min auth)
+              </div>
+            </div>
+
+            {/* 3. Real-Time WebSockets */}
+            <div className="p-3 rounded-xl bg-[#080B12]/90 border border-white/[0.07] hover:border-purple-500/30 transition-all group shadow-lg">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                  <Radio className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[9px] text-purple-400/90 font-bold px-1.5 py-0.2 rounded bg-purple-950/60 border border-purple-500/30">
+                  WS V4
+                </span>
+              </div>
+              <div className="text-[11px] font-bold text-zinc-200 truncate group-hover:text-purple-300 transition-colors">
+                WebSockets
+              </div>
+              <div className="text-[9px] text-zinc-400 font-sans mt-0.5 leading-tight">
+                Live presence, instant chat &amp; APM telemetry streaming
+              </div>
+            </div>
+
+            {/* 4. 4-Phase Saga Checkout */}
+            <div className="p-3 rounded-xl bg-[#080B12]/90 border border-white/[0.07] hover:border-red-500/30 transition-all group shadow-lg">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 group-hover:scale-110 transition-transform">
+                  <RefreshCcw className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[9px] text-red-400/90 font-bold px-1.5 py-0.2 rounded bg-red-950/60 border border-red-500/30">
+                  4-PHASE
+                </span>
+              </div>
+              <div className="text-[11px] font-bold text-zinc-200 truncate group-hover:text-red-300 transition-colors">
+                Distributed Saga
+              </div>
+              <div className="text-[9px] text-zinc-400 font-sans mt-0.5 leading-tight">
+                Wallet Lock &rarr; Capture &rarr; Minting &amp; Auto-Rollback
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Footer Technical Metadata */}
-        <div className="mt-6 text-center text-[10px] font-mono text-zinc-600 flex items-center justify-center gap-3">
+        <div className="mt-5 text-center text-[10px] font-mono text-zinc-400 flex items-center justify-center gap-3">
           <span>DISTRIBUTED SAGA v2.4</span>
-          <span>•</span>
-          <span>HMAC-SHA256 WEBHOOKS</span>
-          <span>•</span>
+          <span>&bull;</span>
+          <span>HMAC-SHA256 WEBHOOK ENGINE</span>
+          <span>&bull;</span>
+          <span>W3C OPENTELEMETRY</span>
+          <span>&bull;</span>
           <span>CURRENCY: ₹ (INR)</span>
         </div>
       </div>

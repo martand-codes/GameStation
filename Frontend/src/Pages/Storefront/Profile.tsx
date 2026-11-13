@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Terminal, Shield, Key, CreditCard, HardDrive, Clock, 
   Check, Copy, ExternalLink, RefreshCw, AlertCircle, 
@@ -13,19 +14,22 @@ import {
   revokeOtherSessionsAPI, 
   type UserProfile 
 } from '../../Services/Profile.service';
+import ProfileSkeleton from '../../Components/Store/ProfileSkeleton';
+import { getCachedData, setCachedData } from '../../Utils/sessionCache';
 
 export default function Profile() {
   const { user: authUser, login } = useAuth();
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedProfile = getCachedData<UserProfile>('user_profile');
+  const [profile, setProfile] = useState<UserProfile | null>(() => cachedProfile);
+  const [loading, setLoading] = useState(() => !cachedProfile);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'settings' | 'purchases'>('settings');
 
   // Edit Profile Form
-  const [usernameInput, setUsernameInput] = useState('');
-  const [emailInput, setEmailInput] = useState('');
+  const [usernameInput, setUsernameInput] = useState(() => cachedProfile?.username || '');
+  const [emailInput, setEmailInput] = useState(() => cachedProfile?.email || '');
   const [savingProfile, setSavingProfile] = useState(false);
 
   // Password Change Form
@@ -76,11 +80,20 @@ export default function Profile() {
 
   const fetchProfile = async () => {
     try {
-      setLoading(true);
+      const hasCache = Boolean(getCachedData('user_profile'));
+      if (!hasCache) {
+        setLoading(true);
+      }
       setError(null);
-      const res = await getProfileAPI();
+      const minScan = !hasCache ? new Promise((resolve) => setTimeout(resolve, 380)) : Promise.resolve();
+      const [res] = await Promise.all([
+        getProfileAPI(),
+        minScan,
+      ]);
+
       if (res.success) {
         setProfile(res.data);
+        setCachedData('user_profile', res.data, 180_000); // 3-min warm cache
         setUsernameInput(res.data.username);
         setEmailInput(res.data.email);
       } else {
@@ -90,7 +103,7 @@ export default function Profile() {
       console.error('Fetch profile error:', err);
       setError(err.response?.data?.message || 'Failed to connect to profile server.');
     } finally {
-      setTimeout(() => setLoading(false), 250);
+      setLoading(false);
     }
   };
 
@@ -219,33 +232,38 @@ export default function Profile() {
     setTimeout(() => setCopiedStripeId(null), 2000);
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[450px] font-mono text-emerald-500">
-        <Terminal className="h-10 w-10 mb-4 animate-pulse text-emerald-400" />
-        <div className="w-full max-w-md bg-[#0D1117] p-5 rounded-md border border-[#30363D] shadow-2xl">
-          <p className="text-xs text-[#8B949E] mb-2">&gt; Loading user profile and account configuration...</p>
-          <p className="text-xs text-emerald-400">&gt; Authenticating session for @{authUser?.username || 'user'}</p>
-          <p className="text-xs mt-2 animate-pulse text-emerald-400">_</p>
-        </div>
-      </div>
-    );
-  }
-
   // Active Sessions Classification
   const desktopSession = profile?.sessions?.find(s => s.deviceType === 'DESKTOP');
   const mobileSession = profile?.sessions?.find(s => s.deviceType === 'MOBILE');
 
   return (
     <div className="space-y-8 font-mono pb-20 max-w-6xl mx-auto">
-      
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0E1520] border border-emerald-500/50 text-emerald-300 px-4 py-2.5 rounded-md shadow-[0_0_25px_rgba(16,185,129,0.3)] text-xs flex items-center gap-2 animate-fadeIn">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="profile-skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, filter: 'blur(6px)' }}
+            transition={{ duration: 0.22 }}
+          >
+            <ProfileSkeleton />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="profile-content"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="space-y-8"
+          >
+            {/* Toast Notification */}
+            {toastMessage && (
+              <div className="fixed bottom-6 right-6 z-50 bg-[#0E1520] border border-emerald-500/50 text-emerald-300 px-4 py-2.5 rounded-md shadow-[0_0_25px_rgba(16,185,129,0.3)] text-xs flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>{toastMessage}</span>
+              </div>
+            )}
 
       {/* Error alert */}
       {error && (
@@ -761,6 +779,9 @@ export default function Profile() {
           )}
         </div>
       )}
+    </motion.div>
+  )}
+</AnimatePresence>
 
     </div>
   );

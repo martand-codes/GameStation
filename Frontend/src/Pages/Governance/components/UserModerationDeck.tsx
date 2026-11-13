@@ -1,18 +1,41 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, UserX, UserCheck, Shield, RefreshCw, Wallet } from 'lucide-react';
+import { Search, UserX, UserCheck, Shield, RefreshCw, Wallet, ShieldAlert } from 'lucide-react';
 import {
   getPlatformUsersAPI,
   toggleUserSuspensionAPI,
   changeUserRoleAPI,
 } from '../../../Services/Governance.service';
 import { useToast } from '../../../Context/ToastContext';
+import { useAuth } from '../../../Context/AuthContext';
+import PromptModal, { type PromptOption } from '../../../Components/Common/PromptModal';
 
 export default function UserModerationDeck() {
   const toast = useToast();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Styled Cyberpunk Prompt Modal state
+  const [promptConfig, setPromptConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description?: string;
+    label?: string;
+    placeholder?: string;
+    defaultValue?: string;
+    inputType?: 'text' | 'textarea' | 'select';
+    options?: PromptOption[];
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    confirmText?: string;
+    onConfirm: (val: string) => void;
+  }>({
+    isOpen: false,
+    title: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -35,47 +58,119 @@ export default function UserModerationDeck() {
     fetchUsers(search);
   };
 
-  const handleToggleSuspension = async (userId: string, username: string, currentActive: boolean) => {
-    const actionLabel = currentActive ? 'SUSPEND' : 'RESTORE';
-    const reason = prompt(
-      `EXECUTIVE DIRECTIVE:\n${actionLabel} account clearance for @${username}?\nEnter administrative rationale:`
+  const handleToggleSuspension = (userId: string, username: string, currentActive: boolean) => {
+    const isDemoUser = currentUser?.username?.toLowerCase() === 'demo_owner';
+    const isPrimaryOwner = username?.toLowerCase() === 'martand_prakhar';
+    const isDemoAccount = ['admin@gs01', 'rockstargames', 'player@01', 'demo_owner'].includes(
+      username?.toLowerCase()
     );
-    if (reason === null) return;
 
-    try {
-      await toggleUserSuspensionAPI(userId, reason.trim() || undefined);
-      toast.success('User suspension status updated');
-      await fetchUsers(search);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to update user status');
+    if (isPrimaryOwner) {
+      toast.error(
+        'SOVEREIGN ROOT SHIELD: The primary platform owner (@Martand_Prakhar) is cryptographically locked and cannot be suspended.'
+      );
+      return;
     }
+
+    if (isDemoUser && isDemoAccount) {
+      toast.warning(
+        'DEMO SANDBOX PROTECTION: Core demo accounts are locked from suspension to preserve reviewer access. Only the root owner (@Martand_Prakhar) holds sovereign executive authority.'
+      );
+      return;
+    }
+
+    const actionLabel = currentActive ? 'SUSPEND' : 'RESTORE';
+    setPromptConfig({
+      isOpen: true,
+      title: `Executive Directive: ${actionLabel} Account`,
+      description: `Transitioning account clearance for @${username} to [${
+        currentActive ? 'SUSPENDED' : 'ACTIVE'
+      }].${
+        currentActive
+          ? '\nAll active refresh tokens and user sessions will be purged immediately.'
+          : '\nAccount access will be fully restored.'
+      }`,
+      label: 'Administrative Rationale / Audit Note:',
+      placeholder: 'Enter formal reason for governance audit trail...',
+      variant: currentActive ? 'danger' : 'info',
+      confirmText: actionLabel,
+      onConfirm: async (reason: string) => {
+        try {
+          await toggleUserSuspensionAPI(userId, reason.trim() || undefined);
+          toast.success(`Account @${username} status set to [${currentActive ? 'SUSPENDED' : 'ACTIVE'}]`);
+          await fetchUsers(search);
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Failed to update user status');
+        }
+      },
+    });
   };
 
-  const handleChangeRole = async (userId: string, username: string, currentRole: string) => {
+  const handleChangeRole = (userId: string, username: string, currentRole: string) => {
+    const isDemoUser = currentUser?.username?.toLowerCase() === 'demo_owner';
+    const isPrimaryOwner = username?.toLowerCase() === 'martand_prakhar';
+
+    if (isPrimaryOwner) {
+      toast.error(
+        'SOVEREIGN ROOT SHIELD: The primary platform owner (@Martand_Prakhar) clearance cannot be modified.'
+      );
+      return;
+    }
+
+    if (isDemoUser) {
+      toast.warning(
+        'RESTRICTED TO ROOT SOVEREIGN OWNER: Clearance role reassignments modify system-wide permissions and can only be authorized by the primary platform owner (@Martand_Prakhar). Demo access is sandbox-restricted.'
+      );
+      return;
+    }
+
     if (currentRole === 'OWNER') {
       toast.warning('The root sovereign clearance role cannot be modified.');
       return;
     }
 
-    const newRole = prompt(
-      `REASSIGN ROLE for @${username}:\nEnter new clearance role (PLAYER, DEVELOPER, or ADMIN):`,
-      currentRole
-    );
-    if (!newRole) return;
+    setPromptConfig({
+      isOpen: true,
+      title: `Reassign Role: @${username}`,
+      description: `Select new clearance tier for citizen @${username}. This will update their interface clearance and API access privileges immediately.`,
+      label: 'Clearance Tier:',
+      inputType: 'select',
+      defaultValue: currentRole,
+      options: [
+        {
+          label: 'ADMIN (Staff Level-1)',
+          value: 'ADMIN',
+          description: 'Review QA dossiers, certify releases, and moderate catalog',
+        },
+        {
+          label: 'DEVELOPER (Studio Partner)',
+          value: 'DEVELOPER',
+          description: 'Publish games, configure pricing, and review webhooks',
+        },
+        {
+          label: 'PLAYER (Verified Gamer)',
+          value: 'PLAYER',
+          description: 'Storefront discovery, Saga checkout, and library access',
+        },
+      ],
+      variant: 'warning',
+      confirmText: 'Reassign Clearance',
+      onConfirm: async (newRole: string) => {
+        const formattedRole = newRole.trim().toUpperCase() as 'PLAYER' | 'DEVELOPER' | 'ADMIN';
+        if (!['PLAYER', 'DEVELOPER', 'ADMIN'].includes(formattedRole)) {
+          toast.error('Invalid role specified. Must be PLAYER, DEVELOPER, or ADMIN.');
+          return;
+        }
 
-    const formattedRole = newRole.trim().toUpperCase() as 'PLAYER' | 'DEVELOPER' | 'ADMIN';
-    if (!['PLAYER', 'DEVELOPER', 'ADMIN'].includes(formattedRole)) {
-      toast.error('Invalid role specified. Must be PLAYER, DEVELOPER, or ADMIN.');
-      return;
-    }
-
-    try {
-      await changeUserRoleAPI(userId, formattedRole);
-      toast.success(`Role for @${username} changed to [${formattedRole}]`);
-      await fetchUsers(search);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to reassign role');
-    }
+        try {
+          await changeUserRoleAPI(userId, formattedRole);
+          toast.success(`Role for @${username} changed to [${formattedRole}]`);
+          await fetchUsers(search);
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Failed to reassign role');
+        }
+      },
+    });
   };
 
   return (
@@ -143,19 +238,27 @@ export default function UserModerationDeck() {
           <tbody className="divide-y divide-white/[0.04]">
             {users.map((u) => {
               const isOwner = u.role === 'OWNER';
+              const isPrimaryOwner = u.username?.toLowerCase() === 'martand_prakhar';
 
               return (
                 <tr key={u.id} className="hover:bg-white/[0.02] transition-colors font-mono">
                   <td className="py-4 px-6">
-                    <span className="font-bold text-white block">@{u.username}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white block">@{u.username}</span>
+                      {isPrimaryOwner && (
+                        <span className="text-[9px] bg-red-950/80 text-[#FF1E27] border border-red-500/40 px-1.5 py-0.2 rounded font-mono font-bold tracking-widest">
+                          ROOT
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-zinc-500 block truncate">{u.email}</span>
                   </td>
                   <td className="py-4 px-6">
                     <button
                       onClick={() => handleChangeRole(u.id, u.username, u.role)}
-                      disabled={isOwner}
+                      disabled={isOwner || isPrimaryOwner}
                       className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase transition-colors ${
-                        isOwner
+                        isOwner || isPrimaryOwner
                           ? 'bg-red-500/15 text-[#FF1E27] border-red-500/30 cursor-default'
                           : u.role === 'ADMIN'
                           ? 'bg-purple-950/40 text-purple-400 border-purple-500/30 hover:bg-purple-950/60 cursor-pointer'
@@ -164,7 +267,7 @@ export default function UserModerationDeck() {
                           : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/60 hover:bg-zinc-800 cursor-pointer'
                       }`}
                     >
-                      {u.role} {!isOwner && '✏️'}
+                      {u.role} {!isOwner && !isPrimaryOwner && '✏️'}
                     </button>
                   </td>
                   <td className="py-4 px-6">
@@ -185,7 +288,7 @@ export default function UserModerationDeck() {
                     {u._count?.games || 0} games &bull; {u._count?.library || 0} library &bull; {u._count?.payments || 0} orders
                   </td>
                   <td className="py-4 px-6 text-right">
-                    {!isOwner ? (
+                    {!isOwner && !isPrimaryOwner ? (
                       <button
                         onClick={() => handleToggleSuspension(u.id, u.username, u.isActive)}
                         className={`py-1.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
@@ -213,6 +316,22 @@ export default function UserModerationDeck() {
           </tbody>
         </table>
       </div>
+
+      {/* Styled Cyberpunk Prompt Modal for Directives */}
+      <PromptModal
+        isOpen={promptConfig.isOpen}
+        title={promptConfig.title}
+        description={promptConfig.description}
+        label={promptConfig.label}
+        placeholder={promptConfig.placeholder}
+        defaultValue={promptConfig.defaultValue}
+        inputType={promptConfig.inputType}
+        options={promptConfig.options}
+        variant={promptConfig.variant}
+        confirmText={promptConfig.confirmText}
+        onConfirm={promptConfig.onConfirm}
+        onClose={() => setPromptConfig((p) => ({ ...p, isOpen: false }))}
+      />
     </motion.section>
   );
 }

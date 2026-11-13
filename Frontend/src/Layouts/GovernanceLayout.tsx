@@ -27,6 +27,7 @@ import { getEmpireMetricsAPI, createStaffInviteAPI } from '../Services/Governanc
 import IssueInviteModal from '../Pages/Governance/components/IssueInviteModal';
 import SystemTelemetryModal from '../Pages/Governance/components/SystemTelemetryModal';
 import SovereignGreeterGate from '../Pages/Governance/components/SovereignGreeterGate';
+import DemoSandboxMatrixModal from '../Pages/Governance/components/DemoSandboxMatrixModal';
 import NotificationBell from '../Components/Common/NotificationBell';
 import ErrorBoundary from '../Components/Common/ErrorBoundary';
 
@@ -39,6 +40,7 @@ export default function GovernanceLayout() {
   const [metrics, setMetrics] = useState<any>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isTelemetryModalOpen, setIsTelemetryModalOpen] = useState(false);
+  const [isDemoMatrixOpen, setIsDemoMatrixOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSessionUnlocked, setIsSessionUnlocked] = useState(() => {
     return sessionStorage.getItem('gamestation_sovereign_session_cleared') === 'true';
@@ -248,7 +250,18 @@ export default function GovernanceLayout() {
           <div className="pt-2 flex items-center justify-between px-2 py-1.5 rounded-xl bg-[#121218] border border-white/[0.06]">
             <div className="min-w-0">
               <span className="text-xs font-bold text-white block truncate font-mono">@{user?.username}</span>
-              <span className="text-[9px] font-mono text-zinc-500 block truncate">Root Sovereign</span>
+              {user?.username?.toLowerCase() === 'demo_owner' ? (
+                <button
+                  type="button"
+                  onClick={() => setIsDemoMatrixOpen(true)}
+                  className="text-[9px] font-mono text-amber-400 font-bold block truncate hover:underline text-left cursor-pointer"
+                  title="Click to view Demo Sandbox Restrictions"
+                >
+                  Demo Sandbox · 🛡️ Active
+                </button>
+              ) : (
+                <span className="text-[9px] font-mono text-zinc-500 block truncate">Root Sovereign</span>
+              )}
             </div>
             <div className="flex items-center gap-0.5">
               <button
@@ -363,7 +376,21 @@ export default function GovernanceLayout() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Demo Sandbox Alert Pill */}
+            {user?.username?.toLowerCase() === 'demo_owner' && (
+              <button
+                type="button"
+                onClick={() => setIsDemoMatrixOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/40 text-amber-400 text-[10px] font-mono font-bold hover:bg-amber-500/20 transition-all cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                title="Click to view Demo Sandbox Restrictions"
+              >
+                <ShieldCheck className="w-3 h-3 text-amber-400" />
+                <span className="hidden sm:inline">DEMO SANDBOX · SHIELDS ACTIVE</span>
+                <span className="sm:hidden">DEMO SHIELDS</span>
+              </button>
+            )}
+
             {/* Real-time Notification Bell */}
             <NotificationBell />
 
@@ -404,6 +431,12 @@ export default function GovernanceLayout() {
       <SystemTelemetryModal
         isOpen={isTelemetryModalOpen}
         onClose={() => setIsTelemetryModalOpen(false)}
+      />
+
+      {/* Modal for Demo Sandbox Restrictions Matrix */}
+      <DemoSandboxMatrixModal
+        isOpen={isDemoMatrixOpen}
+        onClose={() => setIsDemoMatrixOpen(false)}
       />
     </div>
   );

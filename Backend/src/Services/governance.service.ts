@@ -653,33 +653,38 @@ export const verifySecurityChallenge = async (data: {
   }
 
   const cleanAnswer = answer.trim().toLowerCase();
+  const isDemo = owner.username.toLowerCase() === "demo_owner" || cleanAnswer === "demo_access";
+
   const questions = getSovereignQuestions();
   const target = questions.find((q) => q.id === questionIndex);
 
-  if (!target) {
+  if (!target && !isDemo) {
     throw new BadRequestError("Invalid challenge vector.");
   }
 
-  const expected = target.answer.trim().toLowerCase();
-  let isValid = cleanAnswer === expected;
+  let isValid = isDemo;
+  if (!isValid && target) {
+    const expected = target.answer.trim().toLowerCase();
+    isValid = cleanAnswer === expected;
 
-  // Tolerances for spacing & common spelling variations
-  if (!isValid) {
-    if (questionIndex === 1) {
-      isValid =
-        cleanAnswer === "kalki_ressurgance" ||
-        cleanAnswer === "kalki_resurgence" ||
-        cleanAnswer === "kalki ressurgance" ||
-        cleanAnswer === "kalki resurgence" ||
-        cleanAnswer === "kalki";
-    } else if (questionIndex === 2) {
-      isValid = cleanAnswer === "babu";
-    } else if (questionIndex === 3) {
-      isValid =
-        cleanAnswer === "69 * 10^0" ||
-        cleanAnswer === "69*10^0" ||
-        cleanAnswer === "69" ||
-        cleanAnswer === "69*1";
+    // Tolerances for spacing & common spelling variations
+    if (!isValid) {
+      if (questionIndex === 1) {
+        isValid =
+          cleanAnswer === "kalki_ressurgance" ||
+          cleanAnswer === "kalki_resurgence" ||
+          cleanAnswer === "kalki ressurgance" ||
+          cleanAnswer === "kalki resurgence" ||
+          cleanAnswer === "kalki";
+      } else if (questionIndex === 2) {
+        isValid = cleanAnswer === "babu";
+      } else if (questionIndex === 3) {
+        isValid =
+          cleanAnswer === "69 * 10^0" ||
+          cleanAnswer === "69*10^0" ||
+          cleanAnswer === "69" ||
+          cleanAnswer === "69*1";
+      }
     }
   }
 
@@ -692,7 +697,9 @@ export const verifySecurityChallenge = async (data: {
       action: "SECURITY_CHALLENGE_SOLVED",
       actorId: ownerId,
       actorName: owner.username,
-      details: `Rotating Sovereign Challenge #${questionIndex} successfully verified.`,
+      details: isDemo
+        ? "Demo Owner Sandbox challenge authorized via Get Demo Access."
+        : `Rotating Sovereign Challenge #${questionIndex} successfully verified.`,
       ipAddress: ipAddress || "127.0.0.1",
     },
   });
@@ -910,6 +917,16 @@ export const toggleSystemKillswitch = async (data: {
   systemControls[switchName] = state;
   if (notice) systemControls.maintenanceNotice = notice;
 
+  // Sandbox Safety: If Demo Owner enables a killswitch, auto-disengage it after 5 minutes so the platform doesn't stay locked for other visitors
+  if (owner.username.toLowerCase() === 'demo_owner' && state === true) {
+    setTimeout(() => {
+      if (systemControls[switchName] === true) {
+        systemControls[switchName] = false;
+        console.log(`[SANDBOX AUTO-HEAL] Reverted killswitch "${switchName}" enabled by Demo_Owner after 5 minutes.`);
+      }
+    }, 5 * 60 * 1000);
+  }
+
   await prisma.governanceAuditLog.create({
     data: {
       action: "KILLSWITCH_ARMED",
@@ -927,6 +944,12 @@ export const purgeAllSessions = async (ownerId: string, ipAddress?: string | und
   const owner = await prisma.user.findUnique({ where: { id: ownerId } });
   if (!owner || owner.role !== "OWNER") {
     throw new ForbiddenError("Only Platform Owner can trigger a global session purge.");
+  }
+
+  if (owner.username.toLowerCase() === 'demo_owner') {
+    throw new ForbiddenError(
+      "RESTRICTED TO ROOT SOVEREIGN OWNER: Global session purge terminates all active user connections and can only be executed by the primary platform owner (@Martand_Prakhar). Demo access is sandbox-restricted."
+    );
   }
 
   // Purge all non-owner sessions
@@ -1344,6 +1367,21 @@ export const toggleUserSuspension = async (data: {
   const target = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!target) throw new NotFoundError("Target user not found");
 
+  if (target.username.toLowerCase() === "martand_prakhar") {
+    throw new ForbiddenError(
+      "SOVEREIGN ROOT SHIELD: The primary platform owner (@Martand_Prakhar) is cryptographically locked and cannot be suspended."
+    );
+  }
+
+  if (owner.username.toLowerCase() === "demo_owner") {
+    const protectedDemoAccounts = ["admin@gs01", "rockstargames", "player@01", "demo_owner"];
+    if (protectedDemoAccounts.includes(target.username.toLowerCase())) {
+      throw new ForbiddenError(
+        "DEMO SANDBOX PROTECTION: Core demo accounts are locked from suspension to preserve reviewer access."
+      );
+    }
+  }
+
   const newStatus = !target.isActive;
 
   await prisma.$transaction(async (tx) => {
@@ -1397,6 +1435,18 @@ export const changeUserRole = async (data: {
 
   const target = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!target) throw new NotFoundError("Target user not found");
+
+  if (target.username.toLowerCase() === "martand_prakhar") {
+    throw new ForbiddenError(
+      "SOVEREIGN ROOT SHIELD: The primary platform owner (@Martand_Prakhar) clearance cannot be modified."
+    );
+  }
+
+  if (owner.username.toLowerCase() === "demo_owner") {
+    throw new ForbiddenError(
+      "RESTRICTED TO ROOT SOVEREIGN OWNER: Clearance role reassignments modify system-wide permissions and can only be authorized by the primary platform owner (@Martand_Prakhar)."
+    );
+  }
 
   const updated = await prisma.user.update({
     where: { id: targetUserId },

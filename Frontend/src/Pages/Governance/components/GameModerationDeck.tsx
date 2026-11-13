@@ -4,6 +4,7 @@ import { Search, EyeOff, CheckCircle, ShieldAlert, Layers, FileText } from 'luci
 import { getAllPlatformGamesAPI, moderateGameStatusAPI } from '../../../Services/Governance.service';
 import { useToast } from '../../../Context/ToastContext';
 import { QADossierModal } from '../../../Components/Admin/QADossierModal';
+import PromptModal from '../../../Components/Common/PromptModal';
 
 export default function GameModerationDeck() {
   const toast = useToast();
@@ -11,6 +12,27 @@ export default function GameModerationDeck() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedDossierGame, setSelectedDossierGame] = useState<any | null>(null);
+
+  // Prompt Modal state for moderation actions
+  const [promptConfig, setPromptConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    label: string;
+    placeholder: string;
+    variant: 'danger' | 'warning' | 'info';
+    confirmText: string;
+    onConfirm: (val: string) => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    label: '',
+    placeholder: '',
+    variant: 'warning',
+    confirmText: 'Apply Status',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     fetchGames();
@@ -33,17 +55,25 @@ export default function GameModerationDeck() {
     fetchGames(search);
   };
 
-  const handleModerate = async (gameId: string, title: string, status: 'PUBLISHED' | 'HIDDEN' | 'REJECTED') => {
-    const reason = prompt(`MODERATION ACTION for "${title}":\nTransition status to [${status}]. Enter administrative note:`);
-    if (reason === null) return; // user cancelled
-
-    try {
-      await moderateGameStatusAPI(gameId, { status, reason: reason.trim() || undefined });
-      toast.success(`Title "${title}" status set to [${status}]`);
-      await fetchGames(search);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to moderate game');
-    }
+  const handleModerate = (gameId: string, title: string, status: 'PUBLISHED' | 'HIDDEN' | 'REJECTED') => {
+    setPromptConfig({
+      isOpen: true,
+      title: `Moderation Action: ${status}`,
+      description: `Transitioning title "${title}" to status [${status}].\nThis will take effect immediately across all storefront indexing.`,
+      label: 'Administrative Directive / Reason Note:',
+      placeholder: 'Enter formal rationale for developer & audit records...',
+      variant: status === 'PUBLISHED' ? 'info' : 'danger',
+      confirmText: `Set to ${status}`,
+      onConfirm: async (reason: string) => {
+        try {
+          await moderateGameStatusAPI(gameId, { status, reason: reason.trim() || undefined });
+          toast.success(`Title "${title}" status set to [${status}]`);
+          await fetchGames(search);
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Failed to moderate game');
+        }
+      },
+    });
   };
 
   return (
@@ -202,6 +232,19 @@ export default function GameModerationDeck() {
       <QADossierModal
         game={selectedDossierGame}
         onClose={() => setSelectedDossierGame(null)}
+      />
+
+      {/* Styled Cyberpunk Prompt Modal for Moderation Directives */}
+      <PromptModal
+        isOpen={promptConfig.isOpen}
+        title={promptConfig.title}
+        description={promptConfig.description}
+        label={promptConfig.label}
+        placeholder={promptConfig.placeholder}
+        variant={promptConfig.variant}
+        confirmText={promptConfig.confirmText}
+        onConfirm={promptConfig.onConfirm}
+        onClose={() => setPromptConfig((p) => ({ ...p, isOpen: false }))}
       />
     </motion.section>
   );

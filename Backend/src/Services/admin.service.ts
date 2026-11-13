@@ -554,6 +554,21 @@ export const moderateAdminUserSuspension = async (data: {
   const target = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!target) throw new NotFoundError("Target user not found");
 
+  if (target.username.toLowerCase() === "martand_prakhar") {
+    throw new ForbiddenError(
+      "SOVEREIGN ROOT SHIELD: The primary platform owner (@Martand_Prakhar) is cryptographically locked and cannot be suspended."
+    );
+  }
+
+  if (staff.username.toLowerCase() === "demo_owner") {
+    const protectedDemoAccounts = ["admin@gs01", "rockstargames", "player@01", "demo_owner"];
+    if (protectedDemoAccounts.includes(target.username.toLowerCase())) {
+      throw new ForbiddenError(
+        "DEMO SANDBOX PROTECTION: Core demo accounts are locked from suspension to preserve reviewer access."
+      );
+    }
+  }
+
   if (staff.role === "ADMIN" && (target.role === "OWNER" || target.role === "ADMIN")) {
     throw new ForbiddenError("Operator clearance insufficient: You cannot suspend Platform Leadership or fellow staff.");
   }
@@ -621,6 +636,18 @@ export const updateUserRole = async (data: {
   const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!targetUser) {
     throw new NotFoundError("Target user not found.");
+  }
+
+  if (targetUser.username.toLowerCase() === "martand_prakhar") {
+    throw new ForbiddenError(
+      "SOVEREIGN ROOT SHIELD: Cannot alter the role of the primary platform owner (@Martand_Prakhar)."
+    );
+  }
+
+  if (actingStaff.username.toLowerCase() === "demo_owner") {
+    throw new ForbiddenError(
+      "RESTRICTED TO ROOT SOVEREIGN OWNER: Clearance role reassignments modify system-wide permissions and can only be authorized by the primary platform owner (@Martand_Prakhar)."
+    );
   }
 
   if (targetUser.role === "OWNER") {

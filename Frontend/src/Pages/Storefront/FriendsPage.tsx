@@ -24,6 +24,7 @@ import {
 import { useAuth } from '../../Context/AuthContext';
 import { useToast } from '../../Context/ToastContext';
 import { useSocket } from '../../Context/SocketContext';
+import ConfirmModal from '../../Components/Common/ConfirmModal';
 import {
   getFriendsAPI,
   sendFriendRequestAPI,
@@ -66,6 +67,23 @@ export default function FriendsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addUsernameInput, setAddUsernameInput] = useState('');
   const [addingFriend, setAddingFriend] = useState(false);
+
+  // Styled Cyberpunk Confirm Modal state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
@@ -180,19 +198,26 @@ export default function FriendsPage() {
     }
   };
 
-  const handleRemoveFriend = async (friendshipId: string, username: string) => {
-    if (!confirm(`Are you sure you want to remove @${username} from your friends roster?`)) return;
-
-    try {
-      const res = await removeFriendAPI(friendshipId);
-      toast.info(res.message);
-      if (selectedFriend?.friendshipId === friendshipId) {
-        setSelectedFriend(null);
-      }
-      fetchFriends();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to remove friend.');
-    }
+  const handleRemoveFriend = (friendshipId: string, username: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Remove Friend',
+      description: `Are you sure you want to remove @${username} from your friends roster?\nDirect messaging history and mutual online presence will be terminated.`,
+      confirmText: 'Remove Friend',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await removeFriendAPI(friendshipId);
+          toast.info(res.message);
+          if (selectedFriend?.friendshipId === friendshipId) {
+            setSelectedFriend(null);
+          }
+          fetchFriends();
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Failed to remove friend.');
+        }
+      },
+    });
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -717,6 +742,17 @@ export default function FriendsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Styled Cyberpunk Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        onConfirm={confirmConfig.onConfirm}
+        onClose={() => setConfirmConfig((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }

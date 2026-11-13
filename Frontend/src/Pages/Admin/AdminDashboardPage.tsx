@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import AdminSkeleton from '../../Components/Admin/AdminSkeleton';
+import { getCachedData, setCachedData } from '../../Utils/sessionCache';
 import {
   Shield,
   ShieldCheck,
@@ -38,26 +40,33 @@ export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isOwner = user?.role === 'OWNER';
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedAdmin = getCachedData<any>('admin_dashboard_metrics');
+  const [data, setData] = useState<any>(() => cachedAdmin || null);
+  const [loading, setLoading] = useState(() => !cachedAdmin);
 
-  useEffect(() => {
-    fetchMetrics();
-    const interval = setInterval(fetchMetrics, 30000); // 30s auto-refresh
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchMetrics = async () => {
+  const fetchMetrics = async (isInitial = false) => {
     try {
-      setLoading(true);
-      const res = await getAdminDashboardMetricsAPI();
+      const hasCache = Boolean(getCachedData('admin_dashboard_metrics'));
+      if (isInitial && !hasCache) setLoading(true);
+      const minScan = (isInitial && !hasCache) ? new Promise((resolve) => setTimeout(resolve, 380)) : Promise.resolve();
+      const [res] = await Promise.all([
+        getAdminDashboardMetricsAPI(),
+        minScan,
+      ]);
       setData(res);
+      setCachedData('admin_dashboard_metrics', res, 120_000); // 2-min warm cache
     } catch (e) {
       console.error('Failed to load admin metrics:', e);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchMetrics(true);
+    const interval = setInterval(() => fetchMetrics(false), 30000); // 30s silent background refresh
+    return () => clearInterval(interval);
+  }, []);
 
   const kpis = data?.kpis || {
     pendingCertifications: 0,
@@ -82,8 +91,26 @@ export default function AdminDashboardPage() {
   const hasBreachedSLA = pendingBacklog.some((g: any) => g.slaStatus === 'BREACHED');
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
-      {/* ── Sovereign System Advisory (If Owner Armed Any Killswitch) ─── */}
+    <AnimatePresence mode="wait">
+      {loading ? (
+        <motion.div
+          key="admin-skeleton"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, filter: 'blur(6px)' }}
+          transition={{ duration: 0.22 }}
+        >
+          <AdminSkeleton />
+        </motion.div>
+      ) : (
+        <motion.div
+          key="admin-content"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 font-sans"
+        >
+          {/* ── Sovereign System Advisory (If Owner Armed Any Killswitch) ─── */}
       {(sovereignStatus.maintenanceMode ||
         sovereignStatus.marketplaceFrozen ||
         sovereignStatus.submissionsFrozen ||
@@ -615,6 +642,8 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
+  )}
+</AnimatePresence>
   );
 }

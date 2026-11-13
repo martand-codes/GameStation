@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertOctagon, Flame, ShieldAlert, Zap, Lock, RefreshCw, Radio, Megaphone, CheckCircle2, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import { useToast } from '../../../Context/ToastContext';
+import { useAuth } from '../../../Context/AuthContext';
+import ConfirmModal from '../../../Components/Common/ConfirmModal';
 import {
   getSystemKillswitchesAPI,
   toggleSystemKillswitchAPI,
@@ -12,6 +14,7 @@ import {
 
 export default function EmergencyConsole() {
   const toast = useToast();
+  const { user } = useAuth();
   const [killswitches, setKillswitches] = useState<{
     marketplaceFrozen: boolean;
     submissionsFrozen: boolean;
@@ -24,6 +27,23 @@ export default function EmergencyConsole() {
 
   const [loading, setLoading] = useState(false);
   const [purgeLoading, setPurgeLoading] = useState(false);
+
+  // Custom Styled Confirmation Dialog state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
 
   // Broadcast Dispatcher state
   const [broadcastActive, setBroadcastActive] = useState(false);
@@ -62,45 +82,76 @@ export default function EmergencyConsole() {
     }
   };
 
-  const handleToggle = async (
+  const handleToggle = (
     switchName: 'marketplaceFrozen' | 'submissionsFrozen' | 'maintenanceMode',
     currentState: boolean
   ) => {
-    const actionLabel = !currentState ? 'ARM & ACTIVATE' : 'DISARM & DEACTIVATE';
-    if (!confirm(`CONFIRM EMERGENCY DIRECTIVE:\n${actionLabel} the [${switchName}] killswitch?`)) {
-      return;
-    }
+    const isActivating = !currentState;
+    const actionLabel = isActivating ? 'ARM & ACTIVATE' : 'DISARM & DEACTIVATE';
+    const isDemoUser = user?.username?.toLowerCase() === 'demo_owner';
 
-    try {
-      const res = await toggleSystemKillswitchAPI({
-        switchName,
-        state: !currentState,
-      });
-      setKillswitches(res);
-      toast.success(`Killswitch "${switchName}" toggled to [${!currentState ? 'ACTIVE' : 'INACTIVE'}].`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to toggle killswitch');
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: `Emergency Directive: ${actionLabel}`,
+      description: isActivating
+        ? `Are you sure you want to arm the [${switchName}] circuit breaker? This will immediately broadcast restrictions platform-wide.${
+            isDemoUser
+              ? '\n\n⚡ NOTE FOR DEMO OWNER: Because this is a public demo session, this killswitch will automatically disengage after 5 minutes so the live store remains accessible to other visitors. Permanent platform lockdown is exclusive to the root owner (@Martand_Prakhar).'
+              : ''
+          }`
+        : `Deactivate the [${switchName}] circuit breaker and restore normal platform operations?`,
+      confirmText: actionLabel,
+      variant: isActivating ? 'danger' : 'warning',
+      onConfirm: async () => {
+        try {
+          const res = await toggleSystemKillswitchAPI({
+            switchName,
+            state: isActivating,
+          });
+          setKillswitches(res);
+          toast.success(`Killswitch "${switchName}" toggled to [${isActivating ? 'ACTIVE' : 'INACTIVE'}].`);
+
+          if (isDemoUser && isActivating) {
+            toast.info(
+              'DEMO AUTO-HEAL: Killswitch armed. It will automatically revert to normal after 5 minutes.'
+            );
+          }
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Failed to toggle killswitch');
+        }
+      },
+    });
   };
 
-  const handlePurgeSessions = async () => {
-    if (
-      !confirm(
-        'GLOBAL SESSION PURGE PROTOCOL:\nImmediately invalidate and terminate all active refresh tokens and sessions for all players, developers, and administrators across GameStation?\n\n(Only your root owner session will remain active).'
-      )
-    ) {
+  const handlePurgeSessions = () => {
+    const isDemoUser = user?.username?.toLowerCase() === 'demo_owner';
+
+    if (isDemoUser) {
+      toast.error(
+        'RESTRICTED TO ROOT SOVEREIGN OWNER: Global session purge terminates all active user connections and can only be executed by the primary platform owner (@Martand_Prakhar). Demo access is sandbox-restricted.'
+      );
       return;
     }
 
-    try {
-      setPurgeLoading(true);
-      const res = await purgeAllSessionsAPI();
-      toast.success(`SESSION PURGE EXECUTED: ${res.message}`);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to purge sessions');
-    } finally {
-      setPurgeLoading(false);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Nuclear Option: Global Session Purge',
+      description:
+        'GLOBAL SESSION PURGE PROTOCOL:\nImmediately invalidate and terminate all active refresh tokens and sessions for all players, developers, and administrators across GameStation?\n\n(Only your root owner session will remain active).',
+      confirmText: 'EXECUTE PURGE',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          setPurgeLoading(true);
+          const res = await purgeAllSessionsAPI();
+          toast.success(`SESSION PURGE EXECUTED: ${res.message}`);
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Failed to purge sessions');
+        } finally {
+          setPurgeLoading(false);
+        }
+      },
+    });
   };
 
   const handleDispatchBroadcast = async () => {
@@ -537,6 +588,17 @@ export default function EmergencyConsole() {
           </button>
         </div>
       </div>
+
+      {/* Styled Cyberpunk Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        onConfirm={confirmConfig.onConfirm}
+        onClose={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </motion.section>
   );
 }

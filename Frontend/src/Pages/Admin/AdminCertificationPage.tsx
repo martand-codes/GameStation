@@ -50,6 +50,7 @@ import {
   saveQANotesAPI,
 } from '../../Services/Admin.service';
 import { useAuth } from '../../Context/AuthContext';
+import ConfirmModal from '../../Components/Common/ConfirmModal';
 
 export default function AdminCertificationPage() {
   const navigate = useNavigate();
@@ -99,6 +100,23 @@ export default function AdminCertificationPage() {
   // Rejection Modal
   const [rejectingGame, setRejectingGame] = useState<any | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Confirmation Modal state
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    variant: 'info',
+    onConfirm: () => {},
+  });
 
   const REJECTION_PRESETS = [
     'Missing or corrupted 64-bit standalone executable payload.',
@@ -194,48 +212,44 @@ export default function AdminCertificationPage() {
     }
   };
 
-  const handleApprove = async (gameId: string, title: string) => {
+  const handleApprove = (gameId: string, title: string) => {
     const targetGame = games.find((g) => g.id === gameId);
-    if (
+    const isAssignedToOther =
       targetGame?.assignedAdminId &&
       targetGame.assignedAdminId !== user?.id &&
-      user?.role !== 'OWNER'
-    ) {
-      if (
-        !confirm(
-          `NOTICE: This ticket is currently assigned to @${targetGame.assignedAdmin?.username}.\nAre you sure you want to proceed with certification?`
-        )
-      ) {
-        return;
+      user?.role !== 'OWNER';
+
+    const executeApproval = async () => {
+      try {
+        setActionLoading(gameId);
+        await approveGameAPI(gameId);
+        setInspectGame(null);
+        setShowTrailer(false);
+        setToast({
+          message: `Title "${title}" officially certified and published!`,
+          type: 'success',
+        });
+        await fetchData();
+      } catch (err: any) {
+        setToast({
+          message: err.response?.data?.message || 'Failed to certify game',
+          type: 'error',
+        });
+      } finally {
+        setActionLoading(null);
       }
-    }
+    };
 
-    if (
-      !confirm(
-        `SIGN & PUBLISH TITLE:\nOfficially certify "${title}" and sign release for live publication on GameStation Storefront?\n\n(Reviewer attribution will be recorded under @${user?.username || 'Staff'}).`
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setActionLoading(gameId);
-      await approveGameAPI(gameId);
-      setInspectGame(null);
-      setShowTrailer(false);
-      setToast({
-        message: `Title "${title}" officially certified and published!`,
-        type: 'success',
-      });
-      await fetchData();
-    } catch (err: any) {
-      setToast({
-        message: err.response?.data?.message || 'Failed to certify game',
-        type: 'error',
-      });
-    } finally {
-      setActionLoading(null);
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: isAssignedToOther ? 'Override Assignment & Certify' : 'Sign & Certify Title Release',
+      description: isAssignedToOther
+        ? `NOTICE: This ticket is currently assigned to @${targetGame?.assignedAdmin?.username}.\nAre you sure you want to proceed with certification?\n\nOfficially certify "${title}" and sign release for live publication on GameStation Storefront?\n(Reviewer attribution will be recorded under @${user?.username || 'Staff'}).`
+        : `Officially certify "${title}" and sign release for live publication on GameStation Storefront?\n\n(Reviewer attribution will be recorded under @${user?.username || 'Staff'}).`,
+      confirmText: 'SIGN & PUBLISH TITLE',
+      variant: 'info',
+      onConfirm: executeApproval,
+    });
   };
 
   const handleRejectSubmit = async (e: React.FormEvent) => {
@@ -1893,6 +1907,17 @@ export default function AdminCertificationPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Styled Cyberpunk Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        onConfirm={confirmConfig.onConfirm}
+        onClose={() => setConfirmConfig((p) => ({ ...p, isOpen: false }))}
+      />
     </div>
   );
 }

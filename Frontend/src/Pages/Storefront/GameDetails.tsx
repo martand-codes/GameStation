@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Terminal, Download, Cpu, HardDrive, ShieldAlert, Disc } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Download, Cpu, HardDrive, ShieldAlert, Disc } from 'lucide-react';
 import SystemRequirements from '../../Components/Store/SystemRequirements';
 import AiSystemCheck from '../../Components/Store/AiSystemCheck';
 import TelemetryReviews from '../../Components/Store/TelemetryReviews';
 import MediaGallery from '../../Components/Store/MediaGallery';
 import GameEditions from '../../Components/Store/GameEditions';
+import GameDetailsSkeleton from '../../Components/Store/GameDetailsSkeleton';
 import { useSocket } from '../../Context/SocketContext';
+import { getCachedData, setCachedData } from '../../Utils/sessionCache';
 
 interface Game {
   id: string;
@@ -26,86 +29,102 @@ export default function GameDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getGameActivePlayerCount } = useSocket();
-  const [game, setGame] = useState<Game | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [logs, setLogs] = useState<string[]>(['> Initializing game node sequence...']);
+  const cacheKey = id ? `game_details_${id}` : '';
+  const cachedGame = cacheKey ? getCachedData<Game>(cacheKey) : null;
+  const [game, setGame] = useState<Game | null>(cachedGame);
+  const [loading, setLoading] = useState(!cachedGame);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchGameDetails = async () => {
       try {
-        setLogs(prev => [...prev, `> Executing GET /store/games/${id}`]);
-        const response = await axios.get(`http://localhost:5000/api/store/games/${id}`, {
-          withCredentials: true
-        });
-        if (response.data.success) {
+        if (!cachedGame) setLoading(true);
+        // Minimum Duration Floor for intentional laser decryption sweep
+        const minScan = new Promise((resolve) => setTimeout(resolve, 380));
+
+        const [response] = await Promise.all([
+          axios.get(`http://localhost:5000/api/store/games/${id}`, { withCredentials: true }),
+          minScan,
+        ]);
+
+        if (isMounted && response.data?.success) {
           setGame(response.data.data);
-          setLogs(prev => [...prev, `> Query OK. Payload received.`]);
+          if (cacheKey) setCachedData(cacheKey, response.data.data, 5 * 60 * 1000);
         }
       } catch (error) {
-        console.error("Failed to fetch game details", error);
-        setLogs(prev => [...prev, '> ERROR 404: Node not found or access denied.']);
+        console.error('Failed to fetch game details', error);
       } finally {
-        setTimeout(() => setLoading(false), 800);
+        if (isMounted) setLoading(false);
       }
     };
     fetchGameDetails();
-  }, [id]);
+    return () => {
+      isMounted = false;
+    };
+  }, [id, cacheKey, cachedGame]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96 font-mono text-blue-500">
-        <Terminal className="h-12 w-12 mb-4 animate-pulse" />
-        <div className="w-full max-w-md bg-[#0D1117] p-4 rounded-md border border-[#30363D]">
-          {logs.map((log, i) => (
-            <p key={i} className="text-sm mb-1">{log}</p>
-          ))}
-          <p className="text-sm mt-2 animate-pulse">_</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!game) {
-    return (
-      <div className="text-center py-20 font-mono">
-        <ShieldAlert className="h-16 w-16 text-red-500 mx-auto mb-4 animate-bounce" />
-        <h2 className="text-2xl font-bold text-red-400 mb-2">CRITICAL ERROR</h2>
-        <p className="text-[#8B949E]">Game instance not found in the matrix.</p>
-        <button onClick={() => navigate('/store')} className="mt-6 text-blue-400 hover:underline">
-          &lt; Return to safe zone
-        </button>
-      </div>
-    );
-  }
-
-  const latestVersion = game.versions?.find(v => v.isLatest) || game.versions?.[0];
+  const latestVersion = game?.versions?.find((v) => v.isLatest) || game?.versions?.[0];
   const livePlayersInGame = game ? getGameActivePlayerCount(game.id) : 0;
 
   return (
-    <div className="font-mono text-[#C9D1D9] max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <AnimatePresence mode="wait">
+      {loading ? (
+        <motion.div
+          key="game-skeleton"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, filter: 'blur(6px)' }}
+          transition={{ duration: 0.22 }}
+        >
+          <GameDetailsSkeleton />
+        </motion.div>
+      ) : !game ? (
+        <motion.div
+          key="game-not-found"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-20 font-mono"
+        >
+          <ShieldAlert className="h-16 w-16 text-rose-500 mx-auto mb-4 animate-bounce" />
+          <h2 className="text-2xl font-bold text-rose-400 mb-2">CRITICAL NODE ERROR</h2>
+          <p className="text-[#8B949E]">Game instance not found in the matrix.</p>
+          <button
+            onClick={() => navigate('/store')}
+            className="mt-6 text-emerald-400 hover:text-emerald-300 underline font-bold"
+          >
+            &lt; Return to safe zone
+          </button>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="game-content"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="font-mono text-[#C9D1D9] max-w-6xl mx-auto space-y-8"
+        >
+          {/* Title & Breadcrumbs */}
+          <div className="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-3">
+            <div>
+              <div className="text-xs text-[#8B949E] mb-2 flex items-center gap-2">
+                <span onClick={() => navigate('/store')} className="hover:text-white cursor-pointer transition-colors">All Games</span> &gt;
+                <span className="hover:text-white cursor-pointer transition-colors">{game.genre} Games</span> &gt;
+                <span className="text-white">{game.title}</span>
+              </div>
+              <h1 className="text-3xl font-bold text-white tracking-tighter drop-shadow-md">
+                {game.title}
+              </h1>
+            </div>
 
-      {/* Title & Breadcrumbs */}
-      <div className="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-3">
-        <div>
-          <div className="text-xs text-[#8B949E] mb-2 flex items-center gap-2">
-            <span className="hover:text-white cursor-pointer transition-colors">All Games</span> &gt;
-            <span className="hover:text-white cursor-pointer transition-colors">{game.genre} Games</span> &gt;
-            <span className="text-white">{game.title}</span>
+            {/* Live CCU Badge */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 font-mono text-xs text-emerald-400 self-start md:self-auto">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-bold">{livePlayersInGame} In-Game Right Now</span>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tighter drop-shadow-md">
-            {game.title}
-          </h1>
-        </div>
-
-        {/* Live CCU Badge */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 font-mono text-xs text-emerald-400 self-start md:self-auto">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="font-bold">{livePlayersInGame} In-Game Right Now</span>
-        </div>
-      </div>
 
       {/* Top Hero Section: Media Gallery + Info Column */}
       <div className="flex flex-col lg:flex-row gap-4 bg-[#0D1117]/30 rounded-md">
@@ -227,6 +246,8 @@ export default function GameDetails() {
 
         </div>
       </div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

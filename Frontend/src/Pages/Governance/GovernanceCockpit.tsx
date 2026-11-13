@@ -38,19 +38,24 @@ import StaffRosterTable from './components/StaffRosterTable';
 import ActiveInvitesTable from './components/ActiveInvitesTable';
 import FlightRecorderLogs from './components/FlightRecorderLogs';
 import IssueInviteModal from './components/IssueInviteModal';
+import ConfirmModal from '../../Components/Common/ConfirmModal';
 import TelemetryRadarCard from './components/TelemetryRadarCard';
+import GovernanceSkeleton from './components/GovernanceSkeleton';
+import { getCachedData, setCachedData } from '../../Utils/sessionCache';
 
 export default function GovernanceCockpit() {
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [metrics, setMetrics] = useState<any>(null);
-  const [chartData, setChartData] = useState<any>(null);
-  const [staff, setStaff] = useState<any[]>([]);
-  const [invites, setInvites] = useState<any[]>([]);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
-  const [banner, setBanner] = useState<any>(null);
+  const cachedGov = getCachedData<any>('governance_cockpit');
+  const [loading, setLoading] = useState(() => !cachedGov);
+  const [metrics, setMetrics] = useState<any>(() => cachedGov?.metrics || null);
+  const [chartData, setChartData] = useState<any>(() => cachedGov?.chartData || null);
+  const [staff, setStaff] = useState<any[]>(() => cachedGov?.staff || []);
+  const [invites, setInvites] = useState<any[]>(() => cachedGov?.invites || []);
+  const [auditLogs, setAuditLogs] = useState<any[]>(() => cachedGov?.auditLogs || []);
+  const [banner, setBanner] = useState<any>(() => cachedGov?.banner || null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'staff' | 'invites' | 'logs'>('staff');
 
@@ -60,6 +65,12 @@ export default function GovernanceCockpit() {
 
   const fetchData = async () => {
     try {
+      const hasCache = Boolean(getCachedData('governance_cockpit'));
+      if (!hasCache) {
+        setLoading(true);
+      }
+      const minScan = !hasCache ? new Promise((resolve) => setTimeout(resolve, 380)) : Promise.resolve();
+
       const [m, charts, s, inv, logs, bannerRes] = await Promise.all([
         getEmpireMetricsAPI(),
         getEmpireChartMetricsAPI(),
@@ -67,6 +78,7 @@ export default function GovernanceCockpit() {
         getStaffInvitesAPI(),
         getAuditLogsAPI(),
         getStorefrontBannerAPI().catch(() => null),
+        minScan,
       ]);
       setMetrics(m);
       setChartData(charts);
@@ -74,10 +86,37 @@ export default function GovernanceCockpit() {
       setInvites(inv);
       setAuditLogs(logs);
       if (bannerRes) setBanner(bannerRes);
+
+      setCachedData('governance_cockpit', {
+        metrics: m,
+        chartData: charts,
+        staff: s,
+        invites: inv,
+        auditLogs: logs,
+        banner: bannerRes,
+      }, 120_000);
     } catch (e: any) {
       console.error('Governance fetch failed:', e);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
 
   const handleCreateInvite = async (expiryHours: number) => {
     try {
@@ -90,26 +129,54 @@ export default function GovernanceCockpit() {
     }
   };
 
-  const handleRevokeInvite = async (id: string) => {
-    if (!confirm('Permanently invalidate this token?')) return;
-    try {
-      await revokeStaffInviteAPI(id);
-      fetchData();
-      toast.success('Invitation token permanently invalidated');
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Failed to revoke token');
-    }
+  const handleRevokeInvite = (id: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Invalidate Staff Token',
+      description: 'Permanently invalidate and revoke this staff invitation token? Anyone with the invite link will no longer be able to claim clearance.',
+      confirmText: 'INVALIDATE TOKEN',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await revokeStaffInviteAPI(id);
+          fetchData();
+          toast.success('Invitation token permanently invalidated');
+        } catch (e: any) {
+          toast.error(e.response?.data?.message || 'Failed to revoke token');
+        }
+      },
+    });
   };
 
-  const handleRevokeStaff = async (id: string, username: string) => {
-    if (!confirm(`Revoke reviewer clearance for @${username}?`)) return;
-    try {
-      await revokeStaffMemberAPI(id);
-      fetchData();
-      toast.success(`Revoked reviewer clearance for @${username}`);
-    } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Failed to revoke staff clearance');
+  const handleRevokeStaff = (id: string, username: string) => {
+    if (username?.toLowerCase() === 'martand_prakhar') {
+      toast.error('SOVEREIGN ROOT SHIELD: The primary platform owner (@Martand_Prakhar) clearance cannot be revoked.');
+      return;
     }
+
+    if (user?.username?.toLowerCase() === 'demo_owner' && username?.toLowerCase() === 'admin@gs01') {
+      toast.warning(
+        'DEMO SANDBOX PROTECTION: Core demo accounts are locked from revocation to preserve reviewer access. Only the root owner (@Martand_Prakhar) holds sovereign executive authority.'
+      );
+      return;
+    }
+
+    setConfirmConfig({
+      isOpen: true,
+      title: `Revoke Staff Clearance: @${username}`,
+      description: `Revoke administrative and reviewer clearance for @${username}? Their privileges will be stripped and they will no longer have access to the staff operations deck.`,
+      confirmText: 'REVOKE CLEARANCE',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await revokeStaffMemberAPI(id);
+          fetchData();
+          toast.success(`Revoked reviewer clearance for @${username}`);
+        } catch (e: any) {
+          toast.error(e.response?.data?.message || 'Failed to revoke staff clearance');
+        }
+      },
+    });
   };
 
   const TABS = [
@@ -120,11 +187,30 @@ export default function GovernanceCockpit() {
 
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
-      {/* ── 1. OWNER WELCOME HEADER ─────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="governance-skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, filter: 'blur(6px)' }}
+            transition={{ duration: 0.22 }}
+          >
+            <GovernanceSkeleton />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="governance-content"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="space-y-8"
+          >
+            {/* ── 1. OWNER WELCOME HEADER ─────────────────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
         className="p-6 md:p-7 rounded-2xl border border-white/[0.08] relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6"
         style={{
           background: 'linear-gradient(135deg, rgba(255,30,39,0.08) 0%, rgba(13,13,18,0.95) 60%)',
@@ -409,12 +495,26 @@ export default function GovernanceCockpit() {
           {activeTab === 'logs' && <FlightRecorderLogs key="logs" logs={auditLogs} />}
         </AnimatePresence>
       </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {/* Directive Modal */}
       <IssueInviteModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
         onSubmit={handleCreateInvite}
+      />
+
+      {/* Styled Cyberpunk Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        onConfirm={confirmConfig.onConfirm}
+        onClose={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

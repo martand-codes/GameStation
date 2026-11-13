@@ -30,6 +30,7 @@ import {
   rejectGameCertificationAPI,
 } from '../../Services/Governance.service';
 import { useToast } from '../../Context/ToastContext';
+import ConfirmModal from '../../Components/Common/ConfirmModal';
 
 export default function CertificationQueue() {
   const navigate = useNavigate();
@@ -71,22 +72,43 @@ export default function CertificationQueue() {
     }
   };
 
-  const handleApprove = async (gameId: string, title: string) => {
-    if (!confirm(`CERTIFY TITLE:\nOfficially certify "${title}" and publish it live to the GameStation storefront?`)) {
-      return;
-    }
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    confirmText: 'Confirm',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
 
-    try {
-      setActionLoading(gameId);
-      await approveGameCertificationAPI(gameId);
-      toast.success('Title officially certified and published to live storefront');
-      setInspectGame(null);
-      await fetchQueue();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to certify game');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleApprove = (gameId: string, title: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Certify & Publish Game',
+      description: `CERTIFY TITLE:\nOfficially certify "${title}" and sign release for live publication on the GameStation storefront? Players will be able to browse and purchase this title immediately.`,
+      confirmText: 'SIGN & CERTIFY',
+      variant: 'info',
+      onConfirm: async () => {
+        try {
+          setActionLoading(gameId);
+          await approveGameCertificationAPI(gameId);
+          toast.success('Title officially certified and published to live storefront');
+          setInspectGame(null);
+          await fetchQueue();
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || 'Failed to certify game');
+        } finally {
+          setActionLoading(null);
+        }
+      },
+    });
   };
 
   const handleRejectSubmit = async (e: React.FormEvent) => {
@@ -733,6 +755,17 @@ export default function CertificationQueue() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Styled Cyberpunk Confirmation Dialog */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        onConfirm={confirmConfig.onConfirm}
+        onClose={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

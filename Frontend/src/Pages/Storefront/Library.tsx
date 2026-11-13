@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Terminal, Gamepad2, Search, Filter, LayoutGrid, List, Play, Download, 
   ShieldCheck, Clock, HardDrive, ExternalLink, ArrowRight, RefreshCw, AlertCircle, RotateCcw
@@ -10,11 +11,14 @@ import { useGameSession } from '../../Context/GameSessionContext';
 import DigitalLicenseModal from '../../Components/Store/DigitalLicenseModal';
 import VersionHistoryModal from '../../Components/Store/VersionHistoryModal';
 import RefundRequestModal from '../../Components/Store/RefundRequestModal';
+import LibrarySkeleton from '../../Components/Store/LibrarySkeleton';
+import { getCachedData, setCachedData } from '../../Utils/sessionCache';
 
 export default function Library() {
   const navigate = useNavigate();
-  const [items, setItems] = useState<LibraryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedLibrary = getCachedData<LibraryItem[]>('player_library');
+  const [items, setItems] = useState<LibraryItem[]>(() => cachedLibrary || []);
+  const [loading, setLoading] = useState(() => !cachedLibrary);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<string[]>([
     '> [FS_MOUNT] Querying /dev/sda1/games/user_library.db...',
@@ -47,11 +51,20 @@ export default function Library() {
 
   const fetchLibrary = async () => {
     try {
-      setLoading(true);
+      const hasCache = Boolean(getCachedData('player_library'));
+      if (!hasCache) {
+        setLoading(true);
+      }
       setError(null);
-      const res = await getPlayerLibraryAPI();
+      const minScan = !hasCache ? new Promise((resolve) => setTimeout(resolve, 380)) : Promise.resolve();
+      const [res] = await Promise.all([
+        getPlayerLibraryAPI(),
+        minScan,
+      ]);
+
       if (res.success) {
         setItems(res.data);
+        setCachedData('player_library', res.data, 180_000); // 3-min warm cache
         // Sync database playtime into local state
         const dbPlaytimes: Record<string, number> = {};
         res.data.forEach((item) => {
@@ -60,16 +73,16 @@ export default function Library() {
           }
         });
         setPlaytimes((prev) => ({ ...prev, ...dbPlaytimes }));
-        setLogs(prev => [...prev, `> [OK] Discovered ${res.data.length} registered digital licenses.`]);
+        setLogs((prev) => [...prev, `> [OK] Discovered ${res.data.length} registered digital licenses.`]);
       } else {
         setError('Failed to fetch player library.');
       }
     } catch (err: any) {
       console.error('Fetch library failed:', err);
       setError(err.response?.data?.message || 'Error connecting to license server.');
-      setLogs(prev => [...prev, '> [ERR_NETWORK] Connection handshake timed out.']);
+      setLogs((prev) => [...prev, '> [ERR_NETWORK] Connection handshake timed out.']);
     } finally {
-      setTimeout(() => setLoading(false), 400);
+      setLoading(false);
     }
   };
 
@@ -140,37 +153,38 @@ export default function Library() {
     return (totalSecs / 3600).toFixed(1);
   }, [playtimes]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] font-mono text-emerald-500">
-        <Terminal className="h-12 w-12 mb-4 animate-pulse text-purple-400" />
-        <div className="w-full max-w-lg bg-[#0D1117] p-5 rounded-md border border-[#30363D] shadow-2xl">
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#21262D] text-xs text-[#8B949E]">
-            <span>SYSTEM // LIBRARY_DAEMON</span>
-            <span className="text-purple-400 animate-pulse">STATUS: INITIALIZING</span>
-          </div>
-          {logs.map((log, i) => (
-            <p key={i} className="text-xs mb-1.5 text-emerald-400/90">{log}</p>
-          ))}
-          <p className="text-xs mt-2 animate-pulse text-purple-400">_</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8 font-mono pb-16">
-      {error && (
-        <div className="bg-red-950/40 border border-red-500/40 text-red-300 px-4 py-3 rounded-md flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400" />
-            <span>{error}</span>
-          </div>
-          <button onClick={fetchLibrary} className="underline text-red-400 hover:text-white">
-            Retry Handshake
-          </button>
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="library-skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, filter: 'blur(6px)' }}
+            transition={{ duration: 0.22 }}
+          >
+            <LibrarySkeleton />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="library-content"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="space-y-8"
+          >
+            {error && (
+              <div className="bg-red-950/40 border border-red-500/40 text-red-300 px-4 py-3 rounded-md flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-400" />
+                  <span>{error}</span>
+                </div>
+                <button onClick={fetchLibrary} className="underline text-red-400 hover:text-white">
+                  Retry Handshake
+                </button>
+              </div>
+            )}
       
       {/* Top Banner / Hero HUD */}
       <div className="relative bg-gradient-to-r from-purple-950/30 via-[#0D1117] to-emerald-950/20 border border-[#30363D] rounded-lg p-6 overflow-hidden shadow-2xl">
@@ -543,6 +557,9 @@ export default function Library() {
           </table>
         </div>
       )}
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {/* Interactive Modals */}
       <DigitalLicenseModal

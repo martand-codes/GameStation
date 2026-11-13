@@ -11,8 +11,14 @@ import {
   CheckCircle2, 
   Layers, 
   Eye, 
-  AlertCircle 
+  AlertCircle,
+  Monitor,
+  ShieldCheck,
+  Star,
+  ArrowUpRight
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import GameCard from '../Components/GameCard';
 import { createGameAPI } from '../Services/Game.service';
 import { useAuth } from '../Context/AuthContext';
 
@@ -75,6 +81,7 @@ export default function CreateGame() {
   const [bannerImageUrl, setBannerImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [previewMode, setPreviewMode] = useState<'card' | 'banner'>('card');
 
   const handleAddTag = (newTag: string) => {
     const trimmed = newTag.trim();
@@ -454,19 +461,15 @@ export default function CreateGame() {
                 </p>
               </div>
             </div>
-          </div>
 
-          {/* RIGHT COLUMN: Visual Assets, Quick Presets & Live Preview (5 Cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* Visual Assets Configuration */}
+            {/* Section 4: Visual Art Assets & Quick Presets */}
             <div className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-6 space-y-5">
               <div className="flex items-center justify-between border-b border-[#21262D] pb-3">
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-pink-400" />
                   <h2 className="text-sm font-bold text-white tracking-wider uppercase">Visual Art Assets</h2>
                 </div>
-                <span className="text-[10px] text-neutral-500">Optional in Draft</span>
+                <span className="text-[10px] text-neutral-500 font-mono">Optional during draft</span>
               </div>
 
               {/* Cover Art (Portrait) */}
@@ -524,102 +527,217 @@ export default function CreateGame() {
               </div>
             </div>
 
-            {/* Live Storefront Preview */}
-            <div className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#21262D] pb-3">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-cyan-400" />
-                  <h2 className="text-sm font-bold text-white tracking-wider uppercase">Live Storefront Card Preview</h2>
-                </div>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                  REALTIME
-                </span>
-              </div>
+          </div>
 
-              {/* Simulated GameCard */}
-              <div className="border border-[#30363D] bg-[#050505] rounded-xl overflow-hidden shadow-2xl">
-                <div className="h-44 bg-[#0A0E15] relative overflow-hidden border-b border-[#21262D]">
-                  {bannerImageUrl || coverImageUrl ? (
-                    <img
-                      src={bannerImageUrl || coverImageUrl}
-                      alt="Game Banner"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
+          {/* RIGHT COLUMN: Sticky Real-time Storefront Emulator (5 Cols) */}
+          <div className="lg:col-span-5">
+            <div className="sticky top-24 space-y-6">
+
+              {/* Preview Control HUD */}
+              <div className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-5 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-[#21262D] pb-3">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-cyan-400" />
+                    <h2 className="text-xs font-bold text-white tracking-wider uppercase">Live Storefront Emulator</h2>
+                  </div>
+                  <span className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    LIVE SYNC
+                  </span>
+                </div>
+
+                {/* Mode Switcher */}
+                <div className="flex items-center bg-[#05080E] border border-[#212A3B] rounded-lg p-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('card')}
+                    className={`flex-1 py-1.5 px-3 rounded-md font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      previewMode === 'card'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <Gamepad2 className="w-3.5 h-3.5" />
+                    Storefront Card (3:4)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('banner')}
+                    className={`flex-1 py-1.5 px-3 rounded-md font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      previewMode === 'banner'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <Monitor className="w-3.5 h-3.5" />
+                    Hero Banner (16:9)
+                  </button>
+                </div>
+
+                {/* Live Card Mode */}
+                <AnimatePresence mode="wait">
+                  {previewMode === 'card' ? (
+                    <motion.div
+                      key="card-view"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      onClickCapture={(e) => e.stopPropagation()}
+                      className="max-w-[320px] mx-auto"
+                    >
+                      <GameCard
+                        game={{
+                          id: 'preview-draft-id',
+                          title: title.trim() || 'Untitled Cyber Title',
+                          genre: genre || 'Cyberpunk / Sci-Fi',
+                          price: isFree ? 0 : Number(price) || 0,
+                          isFree: isFree,
+                          coverImageUrl:
+                            coverImageUrl.trim() ||
+                            'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=800',
+                          editionsCount: 1,
+                          rating: 5.0,
+                          reviewCount: 1,
+                          tags: tags.length > 0 ? tags : ['DirectX 12', 'Ray Tracing'],
+                          editionName: 'Standard Edition',
+                        }}
+                      />
+                    </motion.div>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-neutral-700 bg-gradient-to-br from-[#0D1117] to-black">
-                      <Gamepad2 className="w-12 h-12 mb-2 opacity-30 text-emerald-400" />
-                      <span className="text-[10px] font-mono text-neutral-600">AWAITING_VISUAL_ASSETS</span>
-                    </div>
+                    <motion.div
+                      key="banner-view"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="border border-[#212A3B] bg-[#05080E] rounded-xl overflow-hidden shadow-2xl relative font-mono"
+                    >
+                      {/* 16:9 Landscape Screen */}
+                      <div className="relative aspect-video w-full overflow-hidden bg-black flex items-center justify-center">
+                        <img
+                          src={
+                            bannerImageUrl.trim() ||
+                            coverImageUrl.trim() ||
+                            'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=1200'
+                          }
+                          alt="Banner Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+
+                        {/* Scanlines & vignette */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSJ0cmFuc3BhcmVudCIvPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSIxIiBmaWxsPSJyZ2JhKDAsMCwwLDAuMikiLz4KPC9zdmc+')] opacity-40 pointer-events-none" />
+
+                        {/* Top Badges */}
+                        <div className="absolute top-3 left-3 flex items-center gap-2">
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 backdrop-blur-sm uppercase">
+                            {genre || 'Cyberpunk'}
+                          </span>
+                        </div>
+                        <div className="absolute top-3 right-3">
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-neutral-900/90 text-neutral-400 border border-neutral-700 backdrop-blur-sm">
+                            DRAFT PROTOCOL
+                          </span>
+                        </div>
+
+                        {/* Bottom Overlay Title & Price */}
+                        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="font-bold text-base text-white truncate drop-shadow-md">
+                              {title.trim() || 'Untitled Cyber Title'}
+                            </h3>
+                            <p className="text-[11px] text-zinc-400">
+                              Studio: <strong className="text-zinc-200">@{user?.username || 'Studio'}</strong>
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-sm font-extrabold text-emerald-400 drop-shadow">
+                              {isFree ? 'FREE' : `₹${Number(price || 0).toLocaleString()}`}
+                            </div>
+                            <div className="text-[9px] text-zinc-400">Standard Tier</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Brief Synopsis Footer */}
+                      <div className="p-3 bg-[#0B0F17] border-t border-[#1E2638] text-[11px] text-zinc-400 line-clamp-2">
+                        {description.trim() || 'Game synopsis and storefront highlights will render here...'}
+                      </div>
+                    </motion.div>
                   )}
-
-                  <div className="absolute top-3 right-3">
-                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-neutral-900/90 text-neutral-400 border border-neutral-700 backdrop-blur-sm">
-                      DRAFT
-                    </span>
-                  </div>
-
-                  <div className="absolute bottom-3 left-3">
-                    <span className="px-2.5 py-0.5 text-[10px] font-bold rounded bg-black/80 text-emerald-400 border border-emerald-500/40 backdrop-blur-sm">
-                      {genre}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <h3 className="font-bold text-base text-white truncate mb-1">
-                    {title || 'Untitled Game'}
-                  </h3>
-                  <p className="text-[11px] text-neutral-500 mb-3">
-                    Studio: <span className="text-neutral-300 font-bold">@{user?.username || 'Studio'}</span>
-                  </p>
-
-                  <p className="text-xs text-[#8B949E] line-clamp-2 mb-4">
-                    {description || 'Game description and synopsis will appear here...'}
-                  </p>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-[#21262D]">
-                    <span className="text-xs text-neutral-400">Base Price:</span>
-                    <span className="text-sm font-extrabold text-emerald-400">
-                      {isFree ? 'FREE' : `₹${Number(price || 0).toLocaleString()}`}
-                    </span>
-                  </div>
-                </div>
+                </AnimatePresence>
               </div>
-            </div>
 
-            {/* Registration Readiness Checklist */}
-            <div className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-5 space-y-3">
-              <h3 className="text-xs uppercase tracking-wider text-neutral-400 font-bold mb-1">
-                Readiness Protocol Checklist
-              </h3>
-              
-              <ul className="space-y-2 text-xs">
-                <li className={`flex items-center gap-2 ${hasTitle ? 'text-emerald-400' : 'text-neutral-500'}`}>
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Title defined (minimum 3 characters)</span>
-                </li>
-                <li className={`flex items-center gap-2 ${hasGenre ? 'text-emerald-400' : 'text-neutral-500'}`}>
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Primary genre categorized</span>
-                </li>
-                <li className={`flex items-center gap-2 ${hasDescription ? 'text-emerald-400' : 'text-neutral-500'}`}>
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Storefront synopsis documented (&ge; 10 chars)</span>
-                </li>
-                <li className={`flex items-center gap-2 ${hasPricing ? 'text-emerald-400' : 'text-neutral-500'}`}>
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Standard pricing or free-to-play configured</span>
-                </li>
-                <li className={`flex items-center gap-2 ${hasVisuals ? 'text-cyan-400' : 'text-neutral-600'}`}>
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>Visual art attached (Optional during draft)</span>
-                </li>
-              </ul>
-            </div>
+              {/* Registration Readiness Protocol Meter */}
+              <div className="bg-[#0B0E14] border border-[#21262D] rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs uppercase tracking-wider text-neutral-400 font-bold">
+                    Readiness Protocol
+                  </h3>
+                  <span className="text-xs font-mono font-bold text-emerald-400">
+                    {[hasTitle, hasGenre, hasDescription, hasPricing, hasVisuals].filter(Boolean).length} / 5 Criteria Met
+                  </span>
+                </div>
 
+                {/* Progress bar */}
+                <div className="w-full bg-[#161B22] h-2 rounded-full overflow-hidden border border-[#21262D]">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-300"
+                    style={{
+                      width: `${([hasTitle, hasGenre, hasDescription, hasPricing, hasVisuals].filter(Boolean).length / 5) * 100}%`,
+                    }}
+                  />
+                </div>
+
+                <ul className="space-y-2 text-xs">
+                  <li className={`flex items-center gap-2 ${hasTitle ? 'text-emerald-400' : 'text-neutral-500'}`}>
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Title registered (&ge; 3 chars)</span>
+                  </li>
+                  <li className={`flex items-center gap-2 ${hasGenre ? 'text-emerald-400' : 'text-neutral-500'}`}>
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Primary genre categorized</span>
+                  </li>
+                  <li className={`flex items-center gap-2 ${hasDescription ? 'text-emerald-400' : 'text-neutral-500'}`}>
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Synopsis documented (&ge; 10 chars)</span>
+                  </li>
+                  <li className={`flex items-center gap-2 ${hasPricing ? 'text-emerald-400' : 'text-neutral-500'}`}>
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Standard ₹ pricing or Free-to-play set</span>
+                  </li>
+                  <li className={`flex items-center gap-2 ${hasVisuals ? 'text-cyan-400' : 'text-neutral-600'}`}>
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Visual art attached (Optional during draft)</span>
+                  </li>
+                </ul>
+
+                {/* Sticky Submit Button */}
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={loading || !hasTitle || !hasDescription}
+                  className="w-full mt-2 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-lg text-xs font-bold transition-all shadow-[0_0_25px_rgba(16,185,129,0.3)] disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {loading ? (
+                    <>
+                      <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      INITIALIZING DRAFT...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Initialize Draft & Config
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
