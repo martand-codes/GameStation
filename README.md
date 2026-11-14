@@ -17,11 +17,11 @@
 [![Stripe](https://img.shields.io/badge/Stripe_API-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
 
 <p align="center">
-  <a href="#-system-architecture">Architecture</a> •
-  <a href="#-visual-engineering-showcase">Visual Tour</a> •
-  <a href="#-deep-dive-engineering-highlights">Deep Dives</a> •
-  <a href="#-quickstart--development-saga">Quickstart</a> •
-  <a href="#-performance-benchmarks">Benchmarks</a>
+  <a href="#architecture">Architecture</a> •
+  <a href="#deep-dives">Engineering Deep Dives</a> •
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#quickstart">Quickstart</a> •
+  <a href="#benchmarks">Benchmarks</a>
 </p>
 
 </div>
@@ -30,36 +30,35 @@
 
 ## 🏛️ Executive Overview
 
-**GameStation** is an end-to-end gaming commerce and real-time distribution ecosystem built to solve core distributed system challenges: **eventual consistency across distributed transactions**, **sub-millisecond search indexing**, **in-house observability profiling**, and **high-concurrency real-time state synchronization**.
+**GameStation** is a distributed gaming commerce and real-time telemetry ecosystem designed to handle real-world backend challenges: **eventual consistency across distributed transactions**, **sub-millisecond search indexing**, **in-house observability profiling**, and **high-concurrency real-time state synchronization**.
 
-Rather than relying on basic CRUD patterns, GameStation implements production-level architectural primitives:
-- **Distributed Saga Pattern Orchestrator**: Handles multi-step checkouts across non-transactional boundaries (Stripe, wallet credits, DRM license issuance, and developer revenue splits) with automatic backward compensation loops on hardware faults.
-- **In-Memory Prefix Trie & Okapi BM25 Search Engine**: Sub-2ms text retrieval with Levenshtein distance fuzzy spell-checking, zero database disk I/O, and prefix autocompletion.
-- **Custom Application Performance Monitoring (APM)**: Native W3C OpenTelemetry-compliant tracing engine utilizing Node.js `AsyncLocalStorage` to profile Express middleware, Prisma query execution, and render visual FlameGraphs.
-- **Bi-Directional WebSocket Squad Engine**: Socket.IO-powered real-time user presence, friend transmission channels, and platform event streaming.
-- **Multi-Stage Docker & Edge Nginx Routing**: 131 MB total production container footprint with Nginx reverse proxying, gzip compression, and sub-40 kB initial frontend client bundles.
+<div align="center">
+  <img src="docs/screenshots/Store.png" alt="GameStation Cyberpunk Storefront" width="100%" />
+  <p><em>GameStation Core Storefront: Ring-3 runtime featuring live catalog discovery, promotional events, and active player telemetry.</em></p>
+</div>
 
 ---
 
+<a id="architecture"></a>
 ## 🏗️ System Architecture
 
 ```mermaid
 flowchart TD
     subgraph Client ["Client Tier (React 19 + Vite SPA)"]
-        UI["Cyberpunk UI / Route-Splitting"]
+        UI["Cyberpunk UI / Route-Level Lazy Chunks"]
         State["Context State (Cart, Social, Telemetry)"]
-        WS_Client["Socket.IO Client"]
+        WS_Client["Socket.IO Real-Time Client"]
     end
 
     subgraph Edge ["Edge Tier (Nginx Alpine)"]
         Proxy["Nginx Reverse Proxy & Static Cache"]
-        Gzip["Gzip Engine & SPA Fallback"]
+        Gzip["Gzip Engine & SPA Route Fallback"]
     end
 
     subgraph Gateway ["Application Gateway (Node.js + Express v5)"]
-        Auth["JWT & Multi-Role RBAC (4 Tiers)"]
-        RateLimit["Slotted IP Rate Limiters"]
-        APM["AsyncLocalStorage APM Tracing Engine"]
+        Auth["JWT Multi-Role RBAC (4 Tiers)"]
+        RateLimit["RFC 6585 Sliding Window Log Limiter"]
+        APM["AsyncLocalStorage W3C Tracing Engine"]
     end
 
     subgraph Core ["Platform Core Services"]
@@ -87,138 +86,168 @@ flowchart TD
 
     Saga -->|Atomicity & Compensation| PG
     Saga -->|Payment Webhooks| Stripe
-    Trie -->|Sub-2ms Memory Reads| Gateway
+    Trie -->|Sub-2ms In-Memory Reads| Gateway
     WS_Server -->|State Broadcast| Client
     TelemetrySvc -->|Hierarchical Spans| PG
 ```
 
 ---
 
-## 📸 Visual Engineering Showcase
+<a id="deep-dives"></a>
+## ⚡ Engineering Deep Dives
 
-### 1. Storefront & Algorithmic Search
-| Cyberpunk Storefront (Ring-3 Runtime) | In-Memory Prefix Trie Search (<2ms BM25) |
-|:---:|:---:|
-| ![Storefront](docs/screenshots/Store.png) | ![Search Engine](docs/screenshots/Search_Engine.png) |
-| *Real-time catalog displaying published titles, promotional banners, and active player telemetry.* | *Instant prefix search with Levenshtein fuzzy distance ("Did you mean: red") and BM25 token relevance.* |
+### 1. Distributed Saga Transaction Orchestrator & Chaos Fault Rig
 
----
+In digital game distribution, checkouts span non-transactional boundaries: external payment gateways (Stripe), internal wallet balances, DRM license issuance, and developer royalty settlements. Using traditional Two-Phase Commit (2PC) creates blocking dependencies and database connection starvation across network boundaries.
 
-### 2. Distributed Transactions & Fault Tolerance
-| Distributed Saga & Chaos Simulator | Stripe Hosted Checkout Sandbox |
-|:---:|:---:|
-| ![Saga Orchestrator](docs/screenshots/Toast_Notification.png) | ![Stripe Checkout](docs/screenshots/Stripe_Checkout.png) |
-| *Fault tolerance test rig showing automatic backward compensation rollbacks when simulated faults trigger.* | *Stripe payment integration with idempotent webhook verification and license issuance.* |
+GameStation implements a custom **Saga Orchestrator** to guarantee eventual consistency:
 
----
+```
+[Forward Execution]
+Validate Inventory ──> Deduct Wallet / Stripe ──> Issue DRM License ──> Disburse Royalty
+                                                        │ (Failure Injected)
+[Backward Compensation Loop]                            ▼
+Restore Wallet Funds <── Revoke DRM License <── Halt Settlement <── Trigger Rollback
+```
 
-### 3. Native APM Tracing & Platform Observability
-| Custom APM FlameGraph Tracing | Infrastructure Telemetry Radar |
-|:---:|:---:|
-| ![FlameGraph](docs/screenshots/Flam_Graphs.png) | ![Telemetry Radar](docs/screenshots/Live_Database_Sync.png) |
-| *W3C OpenTelemetry span breakdown: visual hierarchy profiling Express routes down to Prisma SQL queries.* | *Live execution latency waterfall monitoring P50, P95, and P99 metrics with subsystem time allocation.* |
+- **Forward Pipeline**: Coordinates validation, payment capture, license key generation, and 70/30 platform revenue splits.
+- **Backward Compensation Loop**: If any step fails or hardware faults occur, the orchestrator triggers an automatic reverse compensation loop that revokes provisional licenses, refunds wallet points, and marks the transaction state as `COMPENSATED (ROLLED BACK)`.
+- **Chaos Fault Simulator**: Built directly into the platform operations deck to allow engineers to inject deliberate failures into individual steps and verify backward compensation rollbacks in real time.
 
----
-
-### 4. Governance, Treasury & Developer Studio
-| Sovereign Owner Cockpit | Sovereign Financial Ledger (30% Take-Rate) |
-|:---:|:---:|
-| ![Owner Dashboard](docs/screenshots/Owner_Dashboard.png) | ![Owner Treasury](docs/screenshots/Owner_Treasury.png) |
-| *Executive command center with gross volume telemetry, emergency controls, and live platform events.* | *Dynamic platform take-rate slider (30%) with itemized cryptographic settlement audit trail.* |
-
-| Developer 5-Axis Quality Benchmark Radar | Operations Certification Command Center |
-|:---:|:---:|
-| ![Developer Portal](docs/screenshots/Devloper_Saga.png) | ![Admin Dashboard](docs/screenshots/Admin_Dashboard.png) |
-| *Studio telemetry with 5-axis benchmark radar (Optimization, Fun Factor, Sound, Visuals, Netcode).* | *Level-1 Operator desk monitoring submission queues, 24h review velocity, and SLA certification trends.* |
+<div align="center">
+  <img src="docs/screenshots/Toast_Notification.png" alt="Saga Orchestrator and Chaos Simulator" width="95%" />
+  <p><em>Operations & Transactions Inspector: Live audit trail displaying compensated transactions, execution latency, and the Chaos Simulator fault injection rig.</em></p>
+</div>
 
 ---
 
-### 5. Real-Time Squad Networking & UX Polish
-| WebSocket Squad Communications | Cyberpunk Suspense Skeleton Loaders |
-|:---:|:---:|
-| ![Chat Feature](docs/screenshots/Chat_Feature.png) | ![Skeleton Loading](docs/screenshots/Skeleton_Loading.png) |
-| *Bi-directional Socket.IO squad transmissions, friend requests, and active presence status indicators.* | *Zero Cumulative Layout Shift (CLS) with multi-tier React.lazy() Suspense skeleton boundaries.* |
+### 2. Sub-Millisecond In-Memory BM25 & Prefix Trie Search
+
+Executing `ILIKE %query%` SQL queries on every user keystroke causes full table scans, disk IOPS saturation, and database pool starvation under concurrent traffic.
+
+To eliminate database dependency during discovery, GameStation isolates game search into a **custom in-memory prefix indexing engine**:
+
+- **Prefix Trie Structure**: Built in Node.js memory at server boot. All published titles, developer studio names, and tags are mapped character-by-character into a prefix tree.
+- **Levenshtein Distance Spell-Checking**: Constant-time fuzzy string matching that detects typographical errors and suggests corrections (e.g., query `"Rdrd"` returns `"Did you mean: 'red'"`).
+- **Okapi BM25 Ranking**: Multi-token ranking calculating Term Frequency (TF) and Inverse Document Frequency (IDF) saturation to score game relevance.
+- **Performance**: Search requests resolve in **`~1.68 ms`**, returning highlighted token matches and relevance scores with zero database queries.
+
+<div align="center">
+  <img src="docs/screenshots/Search_Engine.png" alt="In-Memory BM25 Search Engine" width="95%" />
+  <p><em>Instant Search Engine: Resolving in 1.688ms with in-memory BM25 scoring, highlighted match tokens, and Levenshtein spelling correction.</em></p>
+</div>
 
 ---
 
-## ⚡ Deep-Dive Engineering Highlights
+### 3. Native W3C Distributed Tracing (APM) & FlameGraphs
 
-### 1. Distributed Saga Orchestration Pattern & Chaos Rig
-In e-commerce checkout, distributed transactions spanning external services (Stripe), local wallets (points), DRM license databases, and developer accounts cannot rely on traditional 2-Phase Commit (2PC) due to blocking network dependencies.
+Rather than adding heavy external third-party agent daemons, GameStation features an in-house **Application Performance Monitoring (APM)** engine:
 
-GameStation implements a custom **Saga Orchestrator**:
-- **Forward Steps**:
-  1. `ValidateInventoryAndLock`: Idempotently verifies game license availability.
-  2. `ProcessPaymentOrDeductWallet`: Coordinates Stripe payment intents or deducts points from the user's wallet.
-  3. `IssueDRMLicense`: Generates cryptographic activation records in the player's library.
-  4. `ReconcileDeveloperRoyalty`: Disburses the 70% publisher cut while crediting the platform's 30% sovereign treasury.
-- **Backward Compensation Loop**:
-  If step 3 or 4 fails (e.g. database network partition), the Saga engine triggers automatic reverse compensation: wallet funds are refunded, provisional licenses are revoked, and transaction state transitions to `COMPENSATED (ROLLED BACK)`.
-- **Chaos Simulator Built-In**: The admin cockpit features an interactive chaos rig allowing engineers to deliberately inject faults into Step 3 to observe automated compensation live.
+- **AsyncLocalStorage Context Propagation**: Captures request lifecycles across asynchronous boundaries, assigning each request a standard W3C `traceparent` identifier.
+- **Hierarchical Sub-Span Profiling**: Measures individual execution phases within each request:
+  - Express middleware resolution
+  - Prisma database operations (e.g. `User.findFirst`, `Session.deleteMany`, `Session.create`)
+  - Payload serialization latency
+- **Visual FlameGraphs & Latency Waterfall**: Generates interactive span breakdowns showing exact duration, execution percentage, HTTP metadata, and database execution times, alongside P50, P95, and P99 latency tracking.
 
----
+<div align="center">
+  <img src="docs/screenshots/Flam_Graphs.png" alt="APM FlameGraph Trace" width="95%" />
+  <p><em>W3C Trace Inspector: Sub-span FlameGraph breakdown profiling a POST /api/auth/login request down to individual Prisma database query durations.</em></p>
+</div>
 
-### 2. Sub-Millisecond In-Memory BM25 & Trie Search
-Querying relational databases with `ILIKE %query%` on every keystroke causes full table scans, disk IOPS saturation, and connection pool exhaustion under high traffic.
-
-GameStation isolates search into a **zero-dependency, in-memory prefix indexing engine**:
-- **Trie Index Data Structure**: Built at server startup from published game records. Every title, tag, and developer handle is indexed character-by-character into a prefix tree.
-- **Levenshtein Distance Spelling Suggestions**: Detects misspellings in constant time (e.g., `"Rdrd"` $\rightarrow$ `"Did you mean: 'red'"`).
-- **Okapi BM25 Ranking**: Scores search terms against multi-token documents with term frequency (TF) and inverse document frequency (IDF) saturation.
-- **Performance Benchmark**: Search queries resolve in **`~1.68 ms`**, returning highlighted matches and relevancy scores without touching PostgreSQL.
+<div align="center">
+  <img src="docs/screenshots/Live_Database_Sync.png" alt="Infrastructure Telemetry Radar" width="95%" />
+  <p><em>System Telemetry Radar: Real-time latency waterfall tracking P50, P95, and P99 baselines with subsystem time allocation metrics.</em></p>
+</div>
 
 ---
 
-### 3. In-House W3C Distributed Tracing (APM) & FlameGraphs
-Rather than introducing heavy third-party agent daemons (Datadog/NewRelic), GameStation features an in-house **Application Performance Monitoring (APM)** engine:
-- **Context Propagation**: Utilizes Node.js `AsyncLocalStorage` to propagate W3C-compliant trace headers (`traceparent`) through asynchronous middleware pipelines.
-- **Sub-Span Profiling**: Custom wrappers measure sub-operations:
-  - Express route middleware resolution
-  - Prisma query execution (`User.findFirst`, `Session.deleteMany`, `Session.create`)
-  - JSON serialization overhead
-- **Interactive FlameGraph UI**: Renders waterfall visual timelines displaying total latency, percentage distribution, HTTP metadata, and database execution durations.
+### 4. RFC 6585 Sliding Window Log Rate Limiter & Abuse Tracking
+
+To protect authentication endpoints and sensitive financial routes from brute-force attacks and credential stuffing, GameStation implements an in-memory **Sliding Window Log Rate Limiter**:
+
+- **Mathematical Precision**: Unlike fixed-window counters that permit 2x traffic bursts across boundary resets, the sliding window log stores exact request timestamps, eliminating burst vulnerabilities entirely.
+- **Client Key Resolution**: Dynamically prioritizes verified `user:${userId}` for authenticated users, falling back to proxy-aware `ip:${clientIp}` extracting through `X-Forwarded-For`.
+- **RFC 6585 Compliance**: Injects standard HTTP throttling headers on all outgoing responses:
+  - `X-RateLimit-Limit`: Maximum permitted request quota.
+  - `X-RateLimit-Remaining`: Remaining request tokens in the active sliding window.
+  - `X-RateLimit-Reset`: Unix epoch timestamp when the current window resets.
+  - `Retry-After`: Seconds to wait before subsequent attempts when throttled with `429 Too Many Requests`.
+- **APM Integration**: Throttled requests are automatically tagged inside the active OpenTelemetry span (`rateLimited=true`, `tier=AUTH_STRICT`), making abusive spikes instantly visible in telemetry radars.
+- **Automatic Memory Cleanup**: An unreferenced background garbage collector runs every 60 seconds to prune expired timestamps, ensuring bounded memory usage.
 
 ---
 
-### 4. Real-Time WebSocket Infrastructure
-- Built on **Socket.IO** with custom room segregation.
-- **Presence Engine**: Tracks player states across `Online`, `In-Game`, and `Offline` matrix modes.
-- **Squad Transmissions**: Instant peer-to-peer messaging, friend requests, and unread count badges.
-- **Platform Event Dispatch**: Real-time broadcast stream publishing live purchases, reviews, and developer updates across connected operator consoles.
+### 5. Real-Time WebSocket Infrastructure & Social Graph
+
+- **Bi-Directional Communication**: Built on **Socket.IO** with segregated channel rooms for private squad transmissions.
+- **Live Presence Matrix**: Synchronizes player states across `Online`, `In-Game`, and `Offline` modes.
+- **Real-Time Event Dispatch**: Broadcasts platform state changes, verified purchases, and review events across connected administrative and developer dashboards.
+
+<div align="center">
+  <img src="docs/screenshots/Chat_Feature.png" alt="WebSocket Squad Communications" width="95%" />
+  <p><em>Squad Roster & Transmissions: Real-time WebSocket messaging, friend list management, and presence indicators.</em></p>
+</div>
 
 ---
 
-### 5. Frontend Bundle Optimization (93% Size Reduction)
-A common flaw in modern React SPAs is massive initial JavaScript bundles caused by monolithic imports of charting libraries and nested admin views.
+### 6. Platform Economics, Governance & Developer Studio
 
-GameStation re-architected its client bundle with **Route-Level Code Splitting**:
-- **Dynamic Imports**: Converted Storefront, Developer Studio, Admin Deck, and Governance Cockpit into `React.lazy()` chunks.
-- **Vendor Chunk Isolation**: Vite manual chunks configured to isolate `vendor-recharts` (431 kB) and `vendor-react` into independent cached layers.
-- **Results**:
-  - Initial JS bundle dropped from **1,881.94 kB** down to **130.77 kB** (**39.25 kB gzipped**).
-  - **93.0% reduction** in initial parse time.
-  - Paired with two-tier `<Suspense>` boundaries and custom `CyberSkeleton` loaders for seamless zero-CLS page transitions.
+- **Sovereign Treasury & Financial Ledger**: Features a dynamic platform take-rate slider (default 30%) with automated gross inflow calculation and itemized cryptographic settlement records.
+- **5-Axis Technical Quality Benchmark Radar**: Developers receive multi-dimensional feedback from verified game owners across **Optimization**, **Fun Factor**, **Sound Design**, **Visuals & Art**, and **Stability & Netcode**.
+- **Operations Flight Deck**: Provides platform administrators with live submission queues, 24-hour review velocity metrics, and SLA certification trends.
 
----
+<div align="center">
+  <img src="docs/screenshots/Owner_Treasury.png" alt="Sovereign Financial Ledger" width="95%" />
+  <p><em>Sovereign Treasury & Financial Ledger: Dynamic take-rate settlement ledger tracking gross inflow and creator payouts.</em></p>
+</div>
 
-### 6. Production Multi-Stage Docker Architecture
-The repository includes a unified, production-ready containerization setup:
-- **Backend Dockerfile**: Multi-stage build based on `node:22-slim` containing compiled TypeScript output and minimal production dependencies (~177 MB).
-- **Frontend Dockerfile**: Multi-stage build compiling React 19 assets and serving them through an ultra-lightweight `nginx:alpine` instance (~26.9 MB).
-- **Reverse Proxy**: Nginx proxies incoming `/api/*` and `/socket.io/*` requests internally to the Node backend while serving static files with gzip compression.
-- **Total Footprint**: The entire stack (Frontend + Backend + PostgreSQL 18) runs inside **~131.7 MiB of host RAM**.
+<div align="center">
+  <img src="docs/screenshots/Devloper_Saga.png" alt="Developer Quality Radar" width="95%" />
+  <p><em>Developer Studio: 5-axis technical quality radar and sentiment distribution based on verified-owner telemetry.</em></p>
+</div>
 
 ---
 
+### 7. Client Performance & Route-Level Code Splitting (93% Bundle Reduction)
+
+To guarantee sub-second Time to Interactive (TTI), GameStation re-engineered its client application bundle:
+
+- **Route-Level Dynamic Imports**: Separated Storefront, Developer Studio, Admin Flight Deck, and Governance Cockpit into independent `React.lazy()` chunks.
+- **Vendor Chunk Isolation**: Configured Vite Rollup bundling to isolate heavy dependencies (`vendor-recharts` at 431 kB and `vendor-react`) into standalone long-term cached bundles.
+- **Zero-CLS Suspense Boundaries**: Two-tier `<Suspense>` boundaries integrated with custom `CyberSkeleton` loaders to eliminate Cumulative Layout Shift (CLS) during asynchronous route transitions.
+- **Bundle Metrics**:
+  - Initial JavaScript bundle reduced from **1,881.94 kB** down to **130.77 kB** (**39.25 kB gzipped**).
+  - Achieved a **93.0% reduction** in initial script evaluation time.
+
+<div align="center">
+  <img src="docs/screenshots/Skeleton_Loading.png" alt="CyberSkeleton Loading State" width="95%" />
+  <p><em>Cyberpunk Skeleton Loaders: Zero-CLS suspense fallback during route-level dynamic chunk resolution.</em></p>
+</div>
+
+---
+
+### 8. Production Multi-Stage Docker Architecture
+
+GameStation is fully containerized with a production multi-stage orchestration strategy:
+
+- **Backend Container**: Multi-stage `node:22-slim` image compiling TypeScript down to clean ECMAScript modules with production-only dependencies (~177 MB).
+- **Frontend Container**: Multi-stage `nginx:alpine` image compiling React 19 static assets and serving them through a reverse proxy with gzip compression and SPA route fallbacks (~26.9 MB).
+- **Graceful Shutdown**: The Node server handles `SIGINT` and `SIGTERM` signals by draining active HTTP connections and disconnecting Prisma connection pools within <300ms.
+- **Efficiency**: The complete production stack (PostgreSQL 18 + Backend + Nginx Frontend) runs inside **~131.7 MiB of host RAM**.
+
+---
+
+<a id="tech-stack"></a>
 ## 💻 Tech Stack Matrix
 
 | Domain | Technology | Version | Purpose |
 | :--- | :--- | :--- | :--- |
-| **Frontend Core** | React | `19.0.0` | Declarative UI rendering & state management |
+| **Frontend Framework** | React | `19.0.0` | Declarative UI rendering & state management |
 | **Build Tool** | Vite | `6.0.0` | Hot Module Replacement (HMR) & Rollup bundling |
 | **Language** | TypeScript | `5.7.0` | End-to-end type safety |
 | **Styling** | Tailwind CSS | `4.0.0` | Custom cyberpunk design system & utility classes |
-| **Routing** | React Router | `7.0.0` | Declarative client-side routing & lazy loading |
+| **Routing** | React Router | `7.0.0` | Declarative client-side routing & dynamic code splitting |
 | **Data Visualization**| Recharts | `2.15.0` | 5-axis quality radars & telemetry latency charts |
 | **Backend API** | Express.js | `5.0.0` | REST API routing & middleware pipeline |
 | **Database** | PostgreSQL | `18.0` | ACID-compliant relational data persistence |
@@ -230,24 +259,10 @@ The repository includes a unified, production-ready containerization setup:
 
 ---
 
-## 🗄️ Database Schema Highlights
-
-The database is strictly normalized and indexed across 12 core relational entities:
-
-- **`User` & `Session`**: Multi-role security accounts (`PLAYER`, `DEVELOPER`, `ADMIN`, `OWNER`) with hashed refresh tokens.
-- **`Game`**: Central catalog entity managing lifecycle states (`DRAFT`, `PENDING`, `REJECTED`, `PUBLISHED`, `HIDDEN`).
-- **`GamePricing` & `Discount`**: Supports editions (`Standard`, `Deluxe`, `Ultimate`) with scheduled promotional sales.
-- **`GameMedia` & `GameVersion`**: Handles trailers, screenshots, binary download URLs, and historical release changelogs.
-- **`GameRequirements` & `GameTelemetry`**: Hardware specifications (Min/Recommended) and verified player playtime metrics.
-- **`Order` & `SagaTransaction`**: Cryptographic settlement log with forward action traces, compensation states, and idempotency keys.
-- **`Review`**: 5-dimensional ratings (Optimization, Fun, Sound, Art, Netcode) restricted to verified game owners.
-- **`Friendship` & `Message`**: Social graph storing bidirectional friend statuses and encrypted chat logs.
-
----
-
+<a id="quickstart"></a>
 ## 🚀 Quickstart & Development Saga
 
-GameStation supports two distinct development workflows: **Lightweight Hybrid Development** (instant HMR for coding) and **Full Containerized Verification** (pre-push smoke testing).
+GameStation supports two distinct developer workflows: **Lightweight Hybrid Development** (instant HMR for coding) and **Full Containerized Verification** (pre-push smoke testing).
 
 ### Prerequisites
 - [Node.js (v20+)](https://nodejs.org/)
@@ -289,7 +304,7 @@ GameStation supports two distinct development workflows: **Lightweight Hybrid De
 ---
 
 ### Workflow B: Full Production Docker Stack
-*Spin up the entire production-grade stack (PostgreSQL + Backend + Nginx Frontend) with a single command.*
+*Spin up the entire production stack (PostgreSQL + Backend + Nginx Frontend) with a single command.*
 
 ```bash
 # Start all services with automated multi-stage builds
@@ -306,6 +321,7 @@ docker compose down
 
 ---
 
+<a id="benchmarks"></a>
 ## 📊 Performance Benchmarks
 
 | Metric | Target / Measurement | Engineering Implementation |
@@ -316,14 +332,16 @@ docker compose down
 | **Client Bundle Reduction** | **`93.0%` Reduction** | Eliminated monolithic bundle (down from 1.88 MB) |
 | **Docker Stack RAM Footprint** | **`~131.7 MiB`** Total | Multi-stage Alpine & Debian-slim containerization |
 | **Saga Compensation Time** | **`< 150 ms`** | Automated backward rollback on transaction failure |
+| **Rate Limiter Overhead** | **`< 0.05 ms`** | In-memory sliding window timestamp log |
 
 ---
 
 ## 👨‍💻 Author & Engineering Credits
 
 Built by **Martand Prakhar**  
-- **GitHub**: [@martand-codes](https://github.com/martand-codes)
-- **LinkedIn**: [Martand Prakhar](https://www.linkedin.com/in/martand-prakhar/)
+- 🌐 **Portfolio**: [martandprakhar-portfolio.vercel.app](https://martandprakhar-portfolio.vercel.app/)  
+- 💼 **LinkedIn**: [Martand Prakhar](https://www.linkedin.com/in/martand-prakhar-a04904315/)  
+- 🐙 **GitHub**: [@martand-codes](https://github.com/martand-codes)
 
 ---
 
