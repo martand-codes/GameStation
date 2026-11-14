@@ -121,7 +121,22 @@ Restore Wallet Funds <── Revoke DRM License <── Halt Settlement <── 
 
 ---
 
-### 2. Sub-Millisecond In-Memory BM25 & Prefix Trie Search
+### 2. Stripe Checkout Integration & Idempotent Webhook Processing
+
+GameStation interfaces directly with the **Stripe Payment Gateway** to facilitate international digital transactions (credit cards, Apple Pay, Google Pay) alongside our internal wallet points system:
+
+- **Hosted Checkout Sessions**: Dynamic session provisioning on the backend with client redirect, ensuring zero PCI-DSS compliance burden on application servers.
+- **Cryptographic Signature Verification**: Every Stripe webhook event (`checkout.session.completed`) is verified against the endpoint signing secret using `stripe.webhooks.constructEvent()` to prevent replay attacks and header spoofing.
+- **Idempotency & Race Condition Guards**: Stripe checkout sessions are tagged with unique `metadata.sagaId` and `client_reference_id`. Webhook handlers enforce idempotent processing in PostgreSQL so duplicate network retries never result in double license issuance or duplicate creator royalty credits.
+
+<div align="center">
+  <img src="docs/screenshots/Stripe_Checkout.png" alt="Stripe Hosted Checkout" width="95%" />
+  <p><em>Stripe Checkout Gateway: Secure sandbox payment session displaying edition pricing, customer authentication, and payment method capture.</em></p>
+</div>
+
+---
+
+### 3. Sub-Millisecond In-Memory BM25 & Prefix Trie Search
 
 Executing `ILIKE %query%` SQL queries on every user keystroke causes full table scans, disk IOPS saturation, and database pool starvation under concurrent traffic.
 
@@ -139,7 +154,7 @@ To eliminate database dependency during discovery, GameStation isolates game sea
 
 ---
 
-### 3. Native W3C Distributed Tracing (APM) & FlameGraphs
+### 4. Native W3C Distributed Tracing (APM) & FlameGraphs
 
 Rather than adding heavy external third-party agent daemons, GameStation features an in-house **Application Performance Monitoring (APM)** engine:
 
@@ -162,7 +177,7 @@ Rather than adding heavy external third-party agent daemons, GameStation feature
 
 ---
 
-### 4. RFC 6585 Sliding Window Log Rate Limiter & Abuse Tracking
+### 5. RFC 6585 Sliding Window Log Rate Limiter & Abuse Tracking
 
 To protect authentication endpoints and sensitive financial routes from brute-force attacks and credential stuffing, GameStation implements an in-memory **Sliding Window Log Rate Limiter**:
 
@@ -178,11 +193,14 @@ To protect authentication endpoints and sensitive financial routes from brute-fo
 
 ---
 
-### 5. Real-Time WebSocket Infrastructure & Social Graph
+### 6. Real-Time WebSocket Architecture & Squad Social Graph
 
-- **Bi-Directional Communication**: Built on **Socket.IO** with segregated channel rooms for private squad transmissions.
-- **Live Presence Matrix**: Synchronizes player states across `Online`, `In-Game`, and `Offline` modes.
-- **Real-Time Event Dispatch**: Broadcasts platform state changes, verified purchases, and review events across connected administrative and developer dashboards.
+GameStation incorporates an event-driven **Socket.IO** cluster to power instant peer-to-peer communications and live platform observability without polling overhead:
+
+- **Isolated Channel Rooms**: Direct transmissions and squad messages are routed through cryptographically isolated, authenticated room namespaces (`room:user_a_user_b`), preventing message cross-talk between players.
+- **Heartbeat Presence Matrix**: Bidirectional ping-pong polling tracks live player statuses in real time across three states: `Online`, `In-Game (Active Game Title)`, and `Offline Matrix`.
+- **Ephemeral Typing & Instant Delivery**: Low-latency typing indicators and message dispatch with sub-10ms delivery and instant persistence to PostgreSQL.
+- **Live Platform Event Stream**: Dispatches real-time broadcast events (new verified purchases, player reviews, and developer releases) across connected operator flight decks and owner cockpits.
 
 <div align="center">
   <img src="docs/screenshots/Chat_Feature.png" alt="WebSocket Squad Communications" width="95%" />
@@ -191,7 +209,7 @@ To protect authentication endpoints and sensitive financial routes from brute-fo
 
 ---
 
-### 6. Platform Economics, Governance & Developer Studio
+### 7. Platform Economics, Governance & Developer Studio
 
 - **Sovereign Treasury & Financial Ledger**: Features a dynamic platform take-rate slider (default 30%) with automated gross inflow calculation and itemized cryptographic settlement records.
 - **5-Axis Technical Quality Benchmark Radar**: Developers receive multi-dimensional feedback from verified game owners across **Optimization**, **Fun Factor**, **Sound Design**, **Visuals & Art**, and **Stability & Netcode**.
@@ -209,7 +227,7 @@ To protect authentication endpoints and sensitive financial routes from brute-fo
 
 ---
 
-### 7. Client Performance & Route-Level Code Splitting (93% Bundle Reduction)
+### 8. Client Performance & Route-Level Code Splitting (93% Bundle Reduction)
 
 To guarantee sub-second Time to Interactive (TTI), GameStation re-engineered its client application bundle:
 
@@ -227,7 +245,7 @@ To guarantee sub-second Time to Interactive (TTI), GameStation re-engineered its
 
 ---
 
-### 8. Production Multi-Stage Docker Architecture
+### 9. Production Multi-Stage Docker Architecture
 
 GameStation is fully containerized with a production multi-stage orchestration strategy:
 
@@ -346,4 +364,4 @@ Built by **Martand Prakhar**
 ---
 
 ## 📝 License
-This project is open-source and licensed under the [ISC License](LICENSE).
+This project is open-source and licensed under the [MIT License](LICENSE).
