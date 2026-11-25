@@ -12,6 +12,15 @@ services:
     volumes:
       - gamestation_data:/var/lib/postgresql
 
+  redis:
+    image: redis:7-alpine
+    container_name: gamestation-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - gamestation_redis_data:/data
+
   backend:
     build:
       context: ./Backend
@@ -23,15 +32,12 @@ services:
     environment:
       - PORT=5000
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - JWT_ACCESS_KEY=${JWT_ACCESS_KEY}
-      - JWT_REFRESH_KEY=${JWT_REFRESH_KEY}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_PUBLISHER_KEY=${STRIPE_PUBLISHER_KEY}
-      - PLATFORM_MASTER_RECOVERY_KEY=${PLATFORM_MASTER_RECOVERY_KEY}
+      - REDIS_URL=redis://redis:6379
     env_file:
       - ./Backend/.env
     depends_on:
       - postgres
+      - redis
 
   frontend:
     build:
@@ -46,3 +52,4 @@ services:
 
 volumes:
   gamestation_data:
+  gamestation_redis_data:
