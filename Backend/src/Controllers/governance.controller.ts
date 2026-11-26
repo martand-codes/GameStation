@@ -439,7 +439,7 @@ export const changeUserRole = async (req: AuthRequest, res: Response, next: Next
 // --- Storefront Merchandising & Hero Event Banner ---
 export const getStorefrontBanner = async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const banner = governanceService.getStorefrontBanner();
+    const banner = await governanceService.getStorefrontBanner();
     res.status(200).json({ success: true, data: banner });
   } catch (error) {
     next(error);

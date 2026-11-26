@@ -4,6 +4,11 @@ import { prisma } from "../prisma/db.js";
 import { ForbiddenError, BadRequestError, NotFoundError } from "../Utils/errors.js";
 import { generateRecoveryPhrase, hashRecoveryPhrase } from "../Utils/recovery.util.js";
 import { createSession } from "./auth.service.js";
+import { redis } from "../Redis/redisClient.js";
+
+// Redis banner Key:
+const BANNER_REDIS_KEY = "site:hero-banner";
+
 
 export const getGovernanceStatus = async () => {
   const owner = await prisma.user.findFirst({
@@ -563,7 +568,19 @@ let storefrontBanner: StorefrontBannerState = {
   updatedAt: new Date().toISOString(),
 };
 
-export const getStorefrontBanner = () => storefrontBanner;
+export const getStorefrontBanner = async () => {
+  try {
+    // Fetching from Redis
+    const cached = await redis.get(BANNER_REDIS_KEY);
+    if(cached) {
+      return JSON.parse(cached);
+    }
+  } catch (err: any) {
+    console.warn(`Redis StoreFront Fetching Failed ${err.message} falling to default`);
+  }
+
+  return storefrontBanner;
+}
 
 export const updateStorefrontBanner = async (
   data: Partial<StorefrontBannerState>,
@@ -581,6 +598,13 @@ export const updateStorefrontBanner = async (
     eventId: data.eventName ? `event-${Date.now()}` : storefrontBanner.eventId,
     updatedAt: new Date().toISOString(),
   };
+
+  // Save directly to Redis RAM so it survives restarts & syncs everywhere!
+  try {
+    await redis.set(BANNER_REDIS_KEY, JSON.stringify(storefrontBanner));
+  } catch (err: any) {
+    console.warn(`[Redis] Failed to write banner to Redis: ${err.message}`);
+  }
 
   await prisma.governanceAuditLog.create({
     data: {
